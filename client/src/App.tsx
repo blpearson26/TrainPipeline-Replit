@@ -8,11 +8,13 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/useAuth";
+import { useColorTheme } from "@/hooks/useColorTheme";
 import Dashboard from "@/pages/dashboard";
 import Clients from "@/pages/clients";
 import Proposals from "@/pages/proposals";
 import Sessions from "@/pages/sessions";
 import Invoices from "@/pages/invoices";
+import Settings from "@/pages/settings";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
@@ -35,12 +37,15 @@ function Router() {
       <Route path="/proposals" component={Proposals} />
       <Route path="/sessions" component={Sessions} />
       <Route path="/invoices" component={Invoices} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function App() {
+  useColorTheme();
+  
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
