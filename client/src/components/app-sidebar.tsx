@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileText, Calendar, BookOpen, ClipboardCheck, DollarSign, Settings } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Calendar, BookOpen, ClipboardCheck, DollarSign, Settings, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -12,7 +12,9 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -27,6 +29,24 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { user } = useAuth();
+
+  const getUserInitials = () => {
+    if (user?.firstName || user?.lastName) {
+      return `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.firstName || user?.lastName) {
+      return `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    }
+    return user?.email || 'User';
+  };
 
   return (
     <Sidebar>
@@ -64,16 +84,33 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        <div className="flex items-center gap-3 rounded-md p-2 hover-elevate">
+      <SidebarFooter className="p-4 space-y-2">
+        <div className="flex items-center gap-3 rounded-md p-2">
           <Avatar>
-            <AvatarFallback className="bg-primary text-primary-foreground">JD</AvatarFallback>
+            {user?.profileImageUrl && (
+              <AvatarImage src={user.profileImageUrl} alt={getUserDisplayName()} className="object-cover" />
+            )}
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {getUserInitials()}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">John Doe</p>
-            <p className="text-xs text-muted-foreground truncate">Training Coordinator</p>
+            <p className="text-sm font-medium truncate" data-testid="text-user-name">{getUserDisplayName()}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           </div>
         </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full" 
+          asChild
+          data-testid="button-logout"
+        >
+          <a href="/api/logout">
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </a>
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );

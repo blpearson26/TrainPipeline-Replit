@@ -7,14 +7,27 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
 import Clients from "@/pages/clients";
 import Proposals from "@/pages/proposals";
 import Sessions from "@/pages/sessions";
 import Invoices from "@/pages/invoices";
+import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route component={Landing} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
@@ -31,30 +44,50 @@ function App() {
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
-  };
+  } as React.CSSProperties;
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <SidebarProvider style={style as React.CSSProperties}>
-            <div className="flex h-screen w-full">
-              <AppSidebar />
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <header className="flex items-center justify-between px-6 py-3 border-b">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <ThemeToggle />
-                </header>
-                <main className="flex-1 overflow-auto px-8 py-6">
-                  <Router />
-                </main>
-              </div>
-            </div>
-          </SidebarProvider>
+          <AuthenticatedLayout style={style}>
+            <Router />
+          </AuthenticatedLayout>
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
+  );
+}
+
+function AuthenticatedLayout({ 
+  style, 
+  children 
+}: { 
+  style: React.CSSProperties; 
+  children: React.ReactNode 
+}) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading || !isAuthenticated) {
+    return <>{children}</>;
+  }
+
+  return (
+    <SidebarProvider style={style}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <header className="flex items-center justify-between px-6 py-3 border-b">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <ThemeToggle />
+          </header>
+          <main className="flex-1 overflow-auto px-8 py-6">
+            {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
 
