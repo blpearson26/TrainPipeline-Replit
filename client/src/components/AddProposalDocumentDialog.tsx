@@ -107,9 +107,12 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
         clientRequestId,
         documentType: data.documentType,
         versionLabel: data.versionLabel,
-        notes: data.notes || null,
         isCurrentVersion: 0,
       };
+
+      if (data.notes && data.notes.trim()) {
+        documentData.notes = data.notes.trim();
+      }
 
       if (data.documentType === "upload" && selectedFile) {
         const uploadResponse = await apiRequest("POST", "/api/object-storage/generate-upload-url", {
