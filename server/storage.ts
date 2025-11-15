@@ -1,4 +1,4 @@
-import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest } from "@shared/schema";
+import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest, scopingCalls, type ScopingCall, type InsertScopingCall } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -11,6 +11,12 @@ export interface IStorage {
   getClientRequest(id: string): Promise<ClientRequest | undefined>;
   updateClientRequest(id: string, request: Partial<InsertClientRequest>): Promise<ClientRequest | undefined>;
   deleteClientRequest(id: string): Promise<void>;
+  
+  createScopingCall(call: InsertScopingCall): Promise<ScopingCall>;
+  getScopingCallsByRequest(clientRequestId: string): Promise<ScopingCall[]>;
+  getScopingCall(id: string): Promise<ScopingCall | undefined>;
+  updateScopingCall(id: string, call: Partial<InsertScopingCall>): Promise<ScopingCall | undefined>;
+  deleteScopingCall(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -70,6 +76,48 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(clientRequests)
       .where(eq(clientRequests.id, id));
+  }
+
+  async createScopingCall(call: InsertScopingCall): Promise<ScopingCall> {
+    const [newCall] = await db
+      .insert(scopingCalls)
+      .values(call)
+      .returning();
+    return newCall;
+  }
+
+  async getScopingCallsByRequest(clientRequestId: string): Promise<ScopingCall[]> {
+    return await db
+      .select()
+      .from(scopingCalls)
+      .where(eq(scopingCalls.clientRequestId, clientRequestId))
+      .orderBy(desc(scopingCalls.createdAt));
+  }
+
+  async getScopingCall(id: string): Promise<ScopingCall | undefined> {
+    const [call] = await db
+      .select()
+      .from(scopingCalls)
+      .where(eq(scopingCalls.id, id));
+    return call;
+  }
+
+  async updateScopingCall(id: string, call: Partial<InsertScopingCall>): Promise<ScopingCall | undefined> {
+    const [updated] = await db
+      .update(scopingCalls)
+      .set({
+        ...call,
+        updatedAt: new Date(),
+      })
+      .where(eq(scopingCalls.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteScopingCall(id: string): Promise<void> {
+    await db
+      .delete(scopingCalls)
+      .where(eq(scopingCalls.id, id));
   }
 }
 

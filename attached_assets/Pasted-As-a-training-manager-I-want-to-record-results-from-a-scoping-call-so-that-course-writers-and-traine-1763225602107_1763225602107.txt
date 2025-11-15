@@ -1,0 +1,72 @@
+As a training manager I want to record results from a scoping call so that course writers and trainers can see and refer back to sponsors requests.
+
+Given:
+
+There is an existing training request in the system.
+
+I have conducted or am conducting a scoping call with the client.
+
+When:
+
+I select “Record Scoping Call” from the training request dashboard or details page.
+
+Then:
+
+I am presented with a fillable scoping call form that includes the following fields:
+
+Attendee Roles: (e.g., Executives, Managers, Analysts, etc.)
+
+Training Objectives: “At the end of the course, participants should be able to…” (Free-text)
+
+Delivery Mode: (Dropdown – Virtual, On-site, Hybrid)
+
+Duration: (e.g., 2 days, 3 hours)
+
+Preferred Time Window for Delivery: (e.g., Q1 2025, next month, specific dates)
+
+Number of Participants (Estimated)
+
+Special Requirements / Constraints: (optional – e.g., technical setup, materials, language)
+
+Notes / Additional Context: (free text for capturing qualitative details)
+
+Additional Acceptance Criteria
+✅ Form Functionality
+
+The form fields are clearly labeled and accept appropriate data types (text, dropdown, date, number).
+
+Required fields (e.g., Attendee Roles, Training Objectives, Delivery Mode) must be completed before submission.
+
+Optional fields are visually indicated as such.
+
+✅ Save & Edit
+
+I can Save the form as a draft if I haven’t completed all fields.
+
+I can Submit the final scoping call record when complete.
+
+After submission, I can Edit or Update the record before the course development phase begins.
+
+The system logs the date, time, and user who last modified the record.
+
+✅ Integration & Visibility
+
+Once saved, the scoping call record is attached to the related training request and accessible by course writers, trainers, and administrators.
+
+Team members can view (read-only) the scoping call details from the training request page.
+
+The record status is visible (e.g., “Scoping Call Recorded” or “Pending”).
+
+✅ Validation & Feedback
+
+If required fields are missing, the user receives a clear error message identifying which fields need attention.
+
+A confirmation message is displayed after successful submission (e.g., “Scoping call details recorded successfully”).
+
+A summary of the scoping call is created to copy and paste into an email to the client to ensure accuracy
+
+✅ Audit & Versioning (Stretch Goal)
+
+Previous versions of scoping call notes are retained for reference, showing changes over time.
+
+

@@ -39,6 +39,24 @@ export const clientRequests = pgTable("client_requests", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const scopingCalls = pgTable("scoping_calls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientRequestId: varchar("client_request_id").notNull(),
+  attendeeRoles: text("attendee_roles").notNull(),
+  trainingObjectives: text("training_objectives").notNull(),
+  deliveryMode: text("delivery_mode").notNull(),
+  duration: text("duration").notNull(),
+  preferredTimeWindow: text("preferred_time_window").notNull(),
+  numberOfParticipants: integer("number_of_participants").notNull(),
+  specialRequirements: text("special_requirements"),
+  notes: text("notes"),
+  status: text("status").notNull().default("draft"),
+  createdBy: varchar("created_by").notNull(),
+  lastModifiedBy: varchar("last_modified_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const clients = pgTable("clients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyName: text("company_name").notNull(),
@@ -112,6 +130,7 @@ export type User = typeof users.$inferSelect;
 export const insertClientRequestSchema = createInsertSchema(clientRequests).omit({ id: true, createdAt: true }).extend({
   scopingCallDate: z.coerce.date(),
 });
+export const insertScopingCallSchema = createInsertSchema(scopingCalls).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
 export const insertProposalSchema = createInsertSchema(proposals).omit({ id: true, createdAt: true, approvedAt: true });
 export const insertTrainingSessionSchema = createInsertSchema(trainingSessions).omit({ id: true });
@@ -121,6 +140,8 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true,
 
 export type ClientRequest = typeof clientRequests.$inferSelect;
 export type InsertClientRequest = z.infer<typeof insertClientRequestSchema>;
+export type ScopingCall = typeof scopingCalls.$inferSelect;
+export type InsertScopingCall = z.infer<typeof insertScopingCallSchema>;
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Proposal = typeof proposals.$inferSelect;

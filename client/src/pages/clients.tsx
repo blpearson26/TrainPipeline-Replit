@@ -61,7 +61,6 @@ export default function Clients() {
             <ClientRequestCard
               key={request.id}
               request={request}
-              onView={() => console.log("View request", request.id)}
             />
           ))}
         </div>
