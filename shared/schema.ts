@@ -134,14 +134,22 @@ export const proposals = pgTable("proposals", {
 export const trainingSessions = pgTable("training_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   clientId: varchar("client_id").notNull(),
+  clientName: text("client_name").notNull(),
   proposalId: varchar("proposal_id"),
   title: text("title").notNull(),
   description: text("description"),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
+  deliveryMode: text("delivery_mode").notNull(),
   location: text("location"),
-  status: text("status").notNull().default("scheduled"),
+  virtualLink: text("virtual_link"),
+  instructor: text("instructor").notNull(),
+  facilitators: text("facilitators").array(),
+  status: text("status").notNull().default("tentative"),
   participantCount: integer("participant_count"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const curriculumItems = pgTable("curriculum_items", {
@@ -191,7 +199,10 @@ export const insertEmailCommunicationSchema = createInsertSchema(emailCommunicat
 export const insertProposalDocumentSchema = createInsertSchema(proposalDocuments).omit({ id: true, uploadedAt: true });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
 export const insertProposalSchema = createInsertSchema(proposals).omit({ id: true, createdAt: true, approvedAt: true });
-export const insertTrainingSessionSchema = createInsertSchema(trainingSessions).omit({ id: true });
+export const insertTrainingSessionSchema = createInsertSchema(trainingSessions).omit({ id: true, createdAt: true, updatedAt: true }).extend({
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+});
 export const insertCurriculumItemSchema = createInsertSchema(curriculumItems).omit({ id: true });
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id: true, submittedAt: true });
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true, paidAt: true });
