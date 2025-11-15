@@ -538,7 +538,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/training-sessions', isAuthenticated, async (req: any, res) => {
     try {
+      // Ensure user is authenticated
       const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
       const validatedData = trainingSessionValidationSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -576,8 +581,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/training-sessions/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/training-sessions/:id', isAuthenticated, async (req: any, res) => {
     try {
+      // Ensure user is authenticated
+      if (!req.user?.claims?.sub) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
       // Load existing session to merge with partial update
       const existingSession = await storage.getTrainingSession(req.params.id);
       if (!existingSession) {
@@ -585,6 +595,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Prepare merged data with key-presence checks to handle explicit null values
+      // Convert facilitators string to array if present in request
+      const facilitatorsValue = "facilitators" in req.body 
+        ? (typeof req.body.facilitators === 'string' 
+            ? (req.body.facilitators ? req.body.facilitators.split(',').map((f: string) => f.trim()) : [])
+            : req.body.facilitators)
+        : existingSession.facilitators;
+
       const mergedForValidation: any = {
         clientId: "clientId" in req.body ? req.body.clientId : existingSession.clientId,
         clientName: "clientName" in req.body ? req.body.clientName : existingSession.clientName,
@@ -597,7 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location: "location" in req.body ? req.body.location : existingSession.location,
         virtualLink: "virtualLink" in req.body ? req.body.virtualLink : existingSession.virtualLink,
         instructor: "instructor" in req.body ? req.body.instructor : existingSession.instructor,
-        facilitators: "facilitators" in req.body ? req.body.facilitators : existingSession.facilitators,
+        facilitators: facilitatorsValue,
         status: "status" in req.body ? req.body.status : existingSession.status,
         participantCount: "participantCount" in req.body ? req.body.participantCount : existingSession.participantCount,
         createdBy: existingSession.createdBy,
