@@ -1,4 +1,4 @@
-import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest, scopingCalls, type ScopingCall, type InsertScopingCall, coordinationCalls, type CoordinationCall, type InsertCoordinationCall, emailCommunications, type EmailCommunication, type InsertEmailCommunication } from "@shared/schema";
+import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest, scopingCalls, type ScopingCall, type InsertScopingCall, coordinationCalls, type CoordinationCall, type InsertCoordinationCall, emailCommunications, type EmailCommunication, type InsertEmailCommunication, proposalDocuments, type ProposalDocument, type InsertProposalDocument } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
@@ -30,6 +30,13 @@ export interface IStorage {
   findDuplicateEmail(clientRequestId: string, subject: string, sentDateTime: Date): Promise<EmailCommunication | undefined>;
   updateEmailCommunication(id: string, email: Partial<InsertEmailCommunication>): Promise<EmailCommunication | undefined>;
   deleteEmailCommunication(id: string): Promise<void>;
+  
+  createProposalDocument(document: InsertProposalDocument): Promise<ProposalDocument>;
+  getProposalDocumentsByRequest(clientRequestId: string): Promise<ProposalDocument[]>;
+  getProposalDocument(id: string): Promise<ProposalDocument | undefined>;
+  markDocumentAsCurrent(clientRequestId: string, documentId: string): Promise<void>;
+  updateProposalDocument(id: string, document: Partial<InsertProposalDocument>): Promise<ProposalDocument | undefined>;
+  deleteProposalDocument(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -229,6 +236,57 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(emailCommunications)
       .where(eq(emailCommunications.id, id));
+  }
+
+  async createProposalDocument(document: InsertProposalDocument): Promise<ProposalDocument> {
+    const [newDocument] = await db
+      .insert(proposalDocuments)
+      .values(document)
+      .returning();
+    return newDocument;
+  }
+
+  async getProposalDocumentsByRequest(clientRequestId: string): Promise<ProposalDocument[]> {
+    return await db
+      .select()
+      .from(proposalDocuments)
+      .where(eq(proposalDocuments.clientRequestId, clientRequestId))
+      .orderBy(desc(proposalDocuments.uploadedAt));
+  }
+
+  async getProposalDocument(id: string): Promise<ProposalDocument | undefined> {
+    const [document] = await db
+      .select()
+      .from(proposalDocuments)
+      .where(eq(proposalDocuments.id, id));
+    return document;
+  }
+
+  async markDocumentAsCurrent(clientRequestId: string, documentId: string): Promise<void> {
+    await db
+      .update(proposalDocuments)
+      .set({ isCurrentVersion: 0 })
+      .where(eq(proposalDocuments.clientRequestId, clientRequestId));
+    
+    await db
+      .update(proposalDocuments)
+      .set({ isCurrentVersion: 1 })
+      .where(eq(proposalDocuments.id, documentId));
+  }
+
+  async updateProposalDocument(id: string, document: Partial<InsertProposalDocument>): Promise<ProposalDocument | undefined> {
+    const [updated] = await db
+      .update(proposalDocuments)
+      .set(document)
+      .where(eq(proposalDocuments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteProposalDocument(id: string): Promise<void> {
+    await db
+      .delete(proposalDocuments)
+      .where(eq(proposalDocuments.id, id));
   }
 }
 

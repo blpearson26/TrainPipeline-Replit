@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema, insertEmailCommunicationSchema } from "@shared/schema";
+import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema, insertEmailCommunicationSchema, insertProposalDocumentSchema } from "@shared/schema";
+import { generatePresignedUploadUrl, generatePresignedDownloadUrl } from "./objectStorage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
@@ -283,6 +284,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting email communication:", error);
       res.status(500).json({ message: "Failed to delete email communication" });
+    }
+  });
+
+  app.post('/api/object-storage/generate-upload-url', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { fileName, contentType } = req.body;
+
+      if (!fileName || !contentType) {
+        return res.status(400).json({ message: "fileName and contentType are required" });
+      }
+
+      const { uploadUrl, fileUrl } = await generatePresignedUploadUrl({
+        fileName,
+        contentType,
+        userId,
+      });
+
+      res.json({ uploadUrl, fileUrl });
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ message: "Failed to generate upload URL", error });
+    }
+  });
+
+  app.post('/api/object-storage/generate-download-url', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { fileUrl } = req.body;
+
+      if (!fileUrl) {
+        return res.status(400).json({ message: "fileUrl is required" });
+      }
+
+      const downloadUrl = await generatePresignedDownloadUrl({
+        fileUrl,
+        userId,
+      });
+
+      res.json({ downloadUrl });
+    } catch (error) {
+      console.error("Error generating download URL:", error);
+      res.status(500).json({ message: "Failed to generate download URL", error });
+    }
+  });
+
+  app.get('/api/proposal-documents', isAuthenticated, async (req, res) => {
+    try {
+      const { clientRequestId } = req.query;
+      if (!clientRequestId || typeof clientRequestId !== 'string') {
+        return res.status(400).json({ message: "clientRequestId is required" });
+      }
+      const documents = await storage.getProposalDocumentsByRequest(clientRequestId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching proposal documents:", error);
+      res.status(500).json({ message: "Failed to fetch proposal documents" });
+    }
+  });
+
+  app.post('/api/proposal-documents', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertProposalDocumentSchema.parse({
+        ...req.body,
+        uploadedBy: userId,
+      });
+      const newDocument = await storage.createProposalDocument(validatedData);
+      res.status(201).json(newDocument);
+    } catch (error) {
+      console.error("Error creating proposal document:", error);
+      res.status(400).json({ message: "Failed to create proposal document", error });
+    }
+  });
+
+  app.get('/api/proposal-documents/:id', isAuthenticated, async (req, res) => {
+    try {
+      const document = await storage.getProposalDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ message: "Proposal document not found" });
+      }
+      res.json(document);
+    } catch (error) {
+      console.error("Error fetching proposal document:", error);
+      res.status(500).json({ message: "Failed to fetch proposal document" });
+    }
+  });
+
+  app.patch('/api/proposal-documents/:id', isAuthenticated, async (req, res) => {
+    try {
+      const partialData = insertProposalDocumentSchema.partial().parse(req.body);
+      const updated = await storage.updateProposalDocument(req.params.id, partialData);
+      if (!updated) {
+        return res.status(404).json({ message: "Proposal document not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating proposal document:", error);
+      res.status(400).json({ message: "Failed to update proposal document", error });
+    }
+  });
+
+  app.post('/api/proposal-documents/:id/mark-current', isAuthenticated, async (req, res) => {
+    try {
+      const document = await storage.getProposalDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ message: "Proposal document not found" });
+      }
+      await storage.markDocumentAsCurrent(document.clientRequestId, req.params.id);
+      const updated = await storage.getProposalDocument(req.params.id);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error marking document as current:", error);
+      res.status(500).json({ message: "Failed to mark document as current", error });
+    }
+  });
+
+  app.delete('/api/proposal-documents/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteProposalDocument(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting proposal document:", error);
+      res.status(500).json({ message: "Failed to delete proposal document" });
     }
   });
 
