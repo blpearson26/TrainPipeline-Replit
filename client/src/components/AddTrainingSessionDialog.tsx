@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -11,9 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 import { type TrainingSession, type Client } from "@shared/schema";
 import { z } from "zod";
+import { format } from "date-fns";
 
 const formSchema = z.object({
   clientId: z.string().min(1, "Client is required"),
@@ -60,6 +62,9 @@ interface AddTrainingSessionDialogProps {
 
 export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessionDialogProps) {
   const [open, setOpen] = useState(false);
+  const [showConflictWarning, setShowConflictWarning] = useState(false);
+  const [conflictingSessions, setConflictingSessions] = useState<TrainingSession[]>([]);
+  const [pendingSessionData, setPendingSessionData] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isEditing = !!session;
@@ -162,6 +167,35 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
     },
   });
 
+  const checkForConflicts = async (sessionData: any) => {
+    try {
+      const response = await apiRequest("POST", "/api/training-sessions/conflicts", {
+        instructor: sessionData.instructor,
+        startDate: sessionData.startDate,
+        endDate: sessionData.endDate,
+        excludeSessionId: isEditing ? session?.id : undefined,
+      });
+      return response as TrainingSession[];
+    } catch (error) {
+      console.error("Error checking for conflicts:", error);
+      return [];
+    }
+  };
+
+  const saveSession = async (sessionData: any, conflictOverride = false) => {
+    if (conflictOverride && conflictingSessions.length > 0) {
+      const conflictNote = `Instructor already scheduled for: ${conflictingSessions.map(s => `"${s.title}" (${format(new Date(s.startDate), 'MMM d, yyyy')})`).join(', ')}`;
+      sessionData.conflictOverride = true;
+      sessionData.conflictNote = conflictNote;
+    }
+
+    if (isEditing) {
+      await updateMutation.mutateAsync(sessionData);
+    } else {
+      await createMutation.mutateAsync(sessionData);
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     if (!user) {
       toast({
@@ -210,14 +244,34 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
         sessionData.createdBy = user.id;
       }
 
-      if (isEditing) {
-        await updateMutation.mutateAsync(sessionData);
+      // Check for conflicts before saving
+      const conflicts = await checkForConflicts(sessionData);
+      
+      if (conflicts.length > 0) {
+        setConflictingSessions(conflicts);
+        setPendingSessionData(sessionData);
+        setShowConflictWarning(true);
       } else {
-        await createMutation.mutateAsync(sessionData);
+        await saveSession(sessionData, false);
       }
     } catch (error) {
       console.error("Error saving training session:", error);
     }
+  };
+
+  const handleConfirmOverride = async () => {
+    if (pendingSessionData) {
+      setShowConflictWarning(false);
+      await saveSession(pendingSessionData, true);
+      setPendingSessionData(null);
+      setConflictingSessions([]);
+    }
+  };
+
+  const handleCancelOverride = () => {
+    setShowConflictWarning(false);
+    setPendingSessionData(null);
+    setConflictingSessions([]);
   };
 
   return (
@@ -548,6 +602,52 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
           </form>
         </Form>
       </DialogContent>
+
+      <AlertDialog open={showConflictWarning} onOpenChange={setShowConflictWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Instructor Already Scheduled
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="space-y-3">
+                <p className="font-medium">
+                  {form.watch("instructor")} is already scheduled for the following event(s) during this time:
+                </p>
+                <div className="space-y-2">
+                  {conflictingSessions.map((conflict) => (
+                    <div 
+                      key={conflict.id} 
+                      className="bg-muted p-3 rounded-md text-sm"
+                      data-testid={`conflict-session-${conflict.id}`}
+                    >
+                      <div className="font-semibold">{conflict.title}</div>
+                      <div className="text-muted-foreground">
+                        {conflict.clientName} • {format(new Date(conflict.startDate), 'MMM d, yyyy h:mm a')} - {format(new Date(conflict.endDate), 'MMM d, yyyy h:mm a')}
+                      </div>
+                      <div className="text-muted-foreground capitalize">
+                        Status: {conflict.status}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm">
+                  You can still save this event, but a note will be added to the event description for audit tracking.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelOverride} data-testid="button-cancel-override">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmOverride} data-testid="button-confirm-override">
+              Save Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
