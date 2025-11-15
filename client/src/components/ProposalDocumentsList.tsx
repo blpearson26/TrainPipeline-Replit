@@ -126,6 +126,12 @@ export function ProposalDocumentsList({ clientRequestId }: ProposalDocumentsList
                 </p>
               )}
 
+              {document.notes && (
+                <p className="text-sm text-muted-foreground mb-2" data-testid={`text-notes-${document.id}`}>
+                  {document.notes}
+                </p>
+              )}
+
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span data-testid={`text-uploaded-${document.id}`}>
                   {document.uploadedAt && format(new Date(document.uploadedAt), "MMM d, yyyy 'at' h:mm a")}

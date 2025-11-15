@@ -17,6 +17,7 @@ const formSchema = z.object({
   fileName: z.string().optional(),
   externalLink: z.string().url("Must be a valid URL").optional(),
   versionLabel: z.string().min(1, "Version label is required"),
+  notes: z.string().optional(),
   file: z.any().optional(),
 }).refine((data) => {
   if (data.documentType === "upload") {
@@ -50,6 +51,7 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
       fileName: "",
       externalLink: "",
       versionLabel: "",
+      notes: "",
     },
   });
 
@@ -81,13 +83,13 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const allowedTypes = [".ppt", ".pptx", ".doc", ".docx", ".pdf"];
+      const allowedTypes = [".ppt", ".pptx", ".doc", ".docx", ".pdf", ".xls", ".xlsx", ".xlsm"];
       const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
       
       if (!allowedTypes.includes(fileExtension)) {
         toast({
           title: "Invalid file type",
-          description: "Please select a .ppt, .docx, or .pdf file",
+          description: "Please select a .ppt, .docx, .pdf, or Excel file",
           variant: "destructive",
         });
         return;
@@ -105,6 +107,7 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
         clientRequestId,
         documentType: data.documentType,
         versionLabel: data.versionLabel,
+        notes: data.notes || null,
         isCurrentVersion: 0,
       };
 
@@ -192,11 +195,11 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
                 name="file"
                 render={() => (
                   <FormItem>
-                    <FormLabel>File (.ppt, .docx, .pdf)</FormLabel>
+                    <FormLabel>File (.ppt, .docx, .pdf, Excel)</FormLabel>
                     <FormControl>
                       <Input
                         type="file"
-                        accept=".ppt,.pptx,.doc,.docx,.pdf"
+                        accept=".ppt,.pptx,.doc,.docx,.pdf,.xls,.xlsx,.xlsm"
                         onChange={handleFileChange}
                         data-testid="input-file"
                       />
@@ -246,6 +249,24 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
                       placeholder="e.g., v1.0, Draft, Final"
                       {...field}
                       data-testid="input-version-label"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Key updates or description..."
+                      {...field}
+                      data-testid="input-notes"
                     />
                   </FormControl>
                   <FormMessage />
