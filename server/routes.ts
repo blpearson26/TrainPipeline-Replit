@@ -538,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/training-sessions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user?.claims?.sub;
       const validatedData = insertTrainingSessionSchema.parse({
         ...req.body,
         createdBy: userId,
