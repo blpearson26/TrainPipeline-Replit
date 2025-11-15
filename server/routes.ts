@@ -452,19 +452,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Filter by date range if provided
       if (startDate || endDate) {
-        const start = startDate ? new Date(startDate as string) : null;
-        const end = endDate ? new Date(endDate as string) : null;
+        // Parse dates as local time by appending time component
+        const start = startDate ? new Date(`${startDate}T00:00:00`) : null;
+        const end = endDate ? new Date(`${endDate}T23:59:59.999`) : null;
         
         allRequests = allRequests.filter(request => {
           const requestDate = new Date(request.createdAt);
           
           if (start && requestDate < start) return false;
-          if (end) {
-            // Set end date to end of day
-            const endOfDay = new Date(end);
-            endOfDay.setHours(23, 59, 59, 999);
-            if (requestDate > endOfDay) return false;
-          }
+          if (end && requestDate > end) return false;
           
           return true;
         });

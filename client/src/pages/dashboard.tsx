@@ -158,31 +158,31 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-4">
           <StatCard
             title="Proposals Sent"
-            value={conversionMetrics?.proposalsSent.toString() || "0"}
+            value={(conversionMetrics?.proposalsSent ?? 0).toString()}
             icon={TrendingUp}
             change="Total engagements with proposals"
             changeType="neutral"
           />
           <StatCard
             title="Contracts Signed"
-            value={conversionMetrics?.contractsSigned.toString() || "0"}
+            value={(conversionMetrics?.contractsSigned ?? 0).toString()}
             icon={CheckCircle2}
             change="Engagements with signed SOWs"
             changeType="positive"
           />
           <StatCard
             title="Conversion Rate"
-            value={`${conversionMetrics?.conversionRate || 0}%`}
+            value={`${conversionMetrics?.conversionRate ?? 0}%`}
             icon={PercentIcon}
             change={
-              conversionMetrics?.conversionRate
+              conversionMetrics?.conversionRate !== undefined
                 ? conversionMetrics.conversionRate >= 50
                   ? "Strong conversion"
                   : "Room for improvement"
                 : "No data yet"
             }
             changeType={
-              conversionMetrics?.conversionRate && conversionMetrics.conversionRate >= 50
+              conversionMetrics?.conversionRate !== undefined && conversionMetrics.conversionRate >= 50
                 ? "positive"
                 : "neutral"
             }
