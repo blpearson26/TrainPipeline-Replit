@@ -444,6 +444,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/metrics/conversion', isAuthenticated, async (req, res) => {
+    try {
+      const allRequests = await storage.getClientRequests();
+      
+      const requestsWithProposals = new Set<string>();
+      const requestsWithSignedContracts = new Set<string>();
+      
+      for (const request of allRequests) {
+        const documents = await storage.getProposalDocumentsByRequest(request.id);
+        
+        if (documents.length > 0) {
+          requestsWithProposals.add(request.id);
+          
+          const hasSignedDocument = documents.some(doc => doc.status === "signed");
+          if (hasSignedDocument) {
+            requestsWithSignedContracts.add(request.id);
+          }
+        }
+      }
+      
+      const proposalsSent = requestsWithProposals.size;
+      const contractsSigned = requestsWithSignedContracts.size;
+      const conversionRate = proposalsSent > 0 
+        ? Math.round((contractsSigned / proposalsSent) * 100) 
+        : 0;
+      
+      res.json({
+        proposalsSent,
+        contractsSigned,
+        conversionRate,
+      });
+    } catch (error) {
+      console.error("Error calculating conversion metrics:", error);
+      res.status(500).json({ message: "Failed to calculate metrics" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -2,11 +2,21 @@ import { StatCard } from "@/components/stat-card";
 import { SessionCard } from "@/components/session-card";
 import { ActivityFeed } from "@/components/activity-feed";
 import { QuickActions } from "@/components/quick-actions";
-import { Users, FileText, Calendar, DollarSign } from "lucide-react";
+import { Users, FileText, Calendar, DollarSign, TrendingUp, CheckCircle2, PercentIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+interface ConversionMetrics {
+  proposalsSent: number;
+  contractsSigned: number;
+  conversionRate: number;
+}
 
 export default function Dashboard() {
+  const { data: conversionMetrics } = useQuery<ConversionMetrics>({
+    queryKey: ["/api/metrics/conversion"],
+  });
   //todo: remove mock functionality
   const mockActivities = [
     {
@@ -83,6 +93,43 @@ export default function Dashboard() {
           change="+12% from last month"
           changeType="positive"
         />
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Conversion Performance</h2>
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard
+            title="Proposals Sent"
+            value={conversionMetrics?.proposalsSent.toString() || "0"}
+            icon={TrendingUp}
+            change="Total engagements with proposals"
+            changeType="neutral"
+          />
+          <StatCard
+            title="Contracts Signed"
+            value={conversionMetrics?.contractsSigned.toString() || "0"}
+            icon={CheckCircle2}
+            change="Engagements with signed SOWs"
+            changeType="positive"
+          />
+          <StatCard
+            title="Conversion Rate"
+            value={`${conversionMetrics?.conversionRate || 0}%`}
+            icon={PercentIcon}
+            change={
+              conversionMetrics?.conversionRate
+                ? conversionMetrics.conversionRate >= 50
+                  ? "Strong conversion"
+                  : "Room for improvement"
+                : "No data yet"
+            }
+            changeType={
+              conversionMetrics?.conversionRate && conversionMetrics.conversionRate >= 50
+                ? "positive"
+                : "neutral"
+            }
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-6">
