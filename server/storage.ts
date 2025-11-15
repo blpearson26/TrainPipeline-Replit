@@ -1,4 +1,4 @@
-import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest, scopingCalls, type ScopingCall, type InsertScopingCall, coordinationCalls, type CoordinationCall, type InsertCoordinationCall, emailCommunications, type EmailCommunication, type InsertEmailCommunication, proposalDocuments, type ProposalDocument, type InsertProposalDocument } from "@shared/schema";
+import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest, scopingCalls, type ScopingCall, type InsertScopingCall, coordinationCalls, type CoordinationCall, type InsertCoordinationCall, emailCommunications, type EmailCommunication, type InsertEmailCommunication, proposalDocuments, type ProposalDocument, type InsertProposalDocument, trainingSessions, type TrainingSession, type InsertTrainingSession } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
@@ -37,6 +37,12 @@ export interface IStorage {
   markDocumentAsCurrent(clientRequestId: string, documentId: string): Promise<void>;
   updateProposalDocument(id: string, document: Partial<InsertProposalDocument>): Promise<ProposalDocument | undefined>;
   deleteProposalDocument(id: string): Promise<void>;
+  
+  createTrainingSession(session: InsertTrainingSession): Promise<TrainingSession>;
+  getTrainingSessions(): Promise<TrainingSession[]>;
+  getTrainingSession(id: string): Promise<TrainingSession | undefined>;
+  updateTrainingSession(id: string, session: Partial<InsertTrainingSession>): Promise<TrainingSession | undefined>;
+  deleteTrainingSession(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -287,6 +293,47 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(proposalDocuments)
       .where(eq(proposalDocuments.id, id));
+  }
+
+  async createTrainingSession(session: InsertTrainingSession): Promise<TrainingSession> {
+    const [newSession] = await db
+      .insert(trainingSessions)
+      .values(session)
+      .returning();
+    return newSession;
+  }
+
+  async getTrainingSessions(): Promise<TrainingSession[]> {
+    return await db
+      .select()
+      .from(trainingSessions)
+      .orderBy(trainingSessions.startDate);
+  }
+
+  async getTrainingSession(id: string): Promise<TrainingSession | undefined> {
+    const [session] = await db
+      .select()
+      .from(trainingSessions)
+      .where(eq(trainingSessions.id, id));
+    return session;
+  }
+
+  async updateTrainingSession(id: string, session: Partial<InsertTrainingSession>): Promise<TrainingSession | undefined> {
+    const [updated] = await db
+      .update(trainingSessions)
+      .set({
+        ...session,
+        updatedAt: new Date(),
+      })
+      .where(eq(trainingSessions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTrainingSession(id: string): Promise<void> {
+    await db
+      .delete(trainingSessions)
+      .where(eq(trainingSessions.id, id));
   }
 }
 
