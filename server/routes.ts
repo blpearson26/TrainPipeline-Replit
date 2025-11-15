@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema, insertEmailCommunicationSchema, insertProposalDocumentSchema, insertTrainingSessionSchema } from "@shared/schema";
+import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema, insertEmailCommunicationSchema, insertProposalDocumentSchema, trainingSessionValidationSchema } from "@shared/schema";
 import { generatePresignedUploadUrl, generatePresignedDownloadUrl } from "./objectStorage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -539,15 +539,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/training-sessions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;
-      const validatedData = insertTrainingSessionSchema.parse({
+      const validatedData = trainingSessionValidationSchema.parse({
         ...req.body,
         createdBy: userId,
       });
-      const newSession = await storage.createTrainingSession(validatedData);
+      
+      // Clear mode-inapplicable fields after validation
+      const cleanedData = {
+        ...validatedData,
+        location: (validatedData.deliveryMode === "on-site" || validatedData.deliveryMode === "hybrid") 
+          ? validatedData.location 
+          : null,
+        virtualLink: (validatedData.deliveryMode === "virtual" || validatedData.deliveryMode === "hybrid") 
+          ? validatedData.virtualLink 
+          : null,
+      };
+      
+      const newSession = await storage.createTrainingSession(cleanedData);
       res.status(201).json(newSession);
     } catch (error) {
       console.error("Error creating training session:", error);
-      res.status(500).json({ message: "Failed to create training session" });
+      res.status(400).json({ message: "Failed to create training session", error });
     }
   });
 
@@ -566,15 +578,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/training-sessions/:id', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertTrainingSessionSchema.partial().parse(req.body);
-      const updated = await storage.updateTrainingSession(req.params.id, validatedData);
-      if (!updated) {
+      // Load existing session to merge with partial update
+      const existingSession = await storage.getTrainingSession(req.params.id);
+      if (!existingSession) {
         return res.status(404).json({ message: "Training session not found" });
       }
+
+      // Prepare merged data with key-presence checks to handle explicit null values
+      const mergedForValidation: any = {
+        clientId: "clientId" in req.body ? req.body.clientId : existingSession.clientId,
+        clientName: "clientName" in req.body ? req.body.clientName : existingSession.clientName,
+        proposalId: "proposalId" in req.body ? req.body.proposalId : existingSession.proposalId,
+        title: "title" in req.body ? req.body.title : existingSession.title,
+        description: "description" in req.body ? req.body.description : existingSession.description,
+        startDate: "startDate" in req.body ? req.body.startDate : existingSession.startDate,
+        endDate: "endDate" in req.body ? req.body.endDate : existingSession.endDate,
+        deliveryMode: "deliveryMode" in req.body ? req.body.deliveryMode : existingSession.deliveryMode,
+        location: "location" in req.body ? req.body.location : existingSession.location,
+        virtualLink: "virtualLink" in req.body ? req.body.virtualLink : existingSession.virtualLink,
+        instructor: "instructor" in req.body ? req.body.instructor : existingSession.instructor,
+        facilitators: "facilitators" in req.body ? req.body.facilitators : existingSession.facilitators,
+        status: "status" in req.body ? req.body.status : existingSession.status,
+        participantCount: "participantCount" in req.body ? req.body.participantCount : existingSession.participantCount,
+        createdBy: existingSession.createdBy,
+      };
+
+      // Validate the merged object
+      const validatedData = trainingSessionValidationSchema.parse(mergedForValidation);
+
+      // Clear mode-inapplicable fields after validation
+      const cleanedData = {
+        ...validatedData,
+        location: (validatedData.deliveryMode === "on-site" || validatedData.deliveryMode === "hybrid") 
+          ? validatedData.location 
+          : null,
+        virtualLink: (validatedData.deliveryMode === "virtual" || validatedData.deliveryMode === "hybrid") 
+          ? validatedData.virtualLink 
+          : null,
+      };
+
+      const updated = await storage.updateTrainingSession(req.params.id, cleanedData);
       res.json(updated);
     } catch (error) {
       console.error("Error updating training session:", error);
-      res.status(500).json({ message: "Failed to update training session" });
+      res.status(400).json({ message: "Failed to update training session", error });
     }
   });
 

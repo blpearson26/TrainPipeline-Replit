@@ -31,7 +31,7 @@ const formSchema = z.object({
   instructor: z.string().min(1, "Instructor is required"),
   facilitators: z.string().optional(),
   status: z.enum(["tentative", "confirmed", "completed"]),
-  participantCount: z.number().optional(),
+  participantCount: z.coerce.number().optional(),
 }).superRefine((data, ctx) => {
   // Validate location is provided for on-site or hybrid
   if ((data.deliveryMode === "on-site" || data.deliveryMode === "hybrid") && !data.location?.trim()) {
@@ -176,6 +176,18 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
       const startDateTime = new Date(`${data.startDate}T${data.startTime}`);
       const endDateTime = new Date(`${data.endDate}T${data.endTime}`);
 
+      // Clear mode-specific fields based on delivery mode to avoid sending stale data
+      let location = null;
+      let virtualLink = null;
+      
+      if (data.deliveryMode === "on-site" || data.deliveryMode === "hybrid") {
+        location = data.location || null;
+      }
+      
+      if (data.deliveryMode === "virtual" || data.deliveryMode === "hybrid") {
+        virtualLink = data.virtualLink || null;
+      }
+
       const sessionData: any = {
         clientId: data.clientId,
         clientName: data.clientName,
@@ -184,8 +196,8 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
         startDate: startDateTime.toISOString(),
         endDate: endDateTime.toISOString(),
         deliveryMode: data.deliveryMode,
-        location: data.location || null,
-        virtualLink: data.virtualLink || null,
+        location,
+        virtualLink,
         instructor: data.instructor,
         facilitators: data.facilitators ? data.facilitators.split(",").map((f: string) => f.trim()).filter((f: string) => f) : null,
         status: data.status,

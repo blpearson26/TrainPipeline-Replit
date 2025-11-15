@@ -203,6 +203,26 @@ export const insertTrainingSessionSchema = createInsertSchema(trainingSessions).
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
 });
+
+export const trainingSessionValidationSchema = insertTrainingSessionSchema.superRefine((data, ctx) => {
+  // Validate location is provided for on-site or hybrid
+  if ((data.deliveryMode === "on-site" || data.deliveryMode === "hybrid") && !data.location?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Location is required for on-site and hybrid delivery modes",
+      path: ["location"],
+    });
+  }
+  // Validate virtual link is provided for virtual or hybrid
+  if ((data.deliveryMode === "virtual" || data.deliveryMode === "hybrid") && !data.virtualLink?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Virtual meeting link is required for virtual and hybrid delivery modes",
+      path: ["virtualLink"],
+    });
+  }
+});
+
 export const insertCurriculumItemSchema = createInsertSchema(curriculumItems).omit({ id: true });
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id: true, submittedAt: true });
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true, paidAt: true });
