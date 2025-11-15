@@ -118,6 +118,14 @@ export function ProposalDocumentsList({ clientRequestId }: ProposalDocumentsList
                 <Badge variant="outline" data-testid={`badge-version-${document.id}`}>
                   {document.versionLabel}
                 </Badge>
+                {document.status && (
+                  <Badge 
+                    variant={document.status === "signed" ? "default" : "secondary"}
+                    data-testid={`badge-status-${document.id}`}
+                  >
+                    {document.status === "signed" ? "🟢 Signed" : "🟡 Pending"}
+                  </Badge>
+                )}
               </div>
 
               {document.documentType === "link" && document.externalLink && (
@@ -139,6 +147,11 @@ export function ProposalDocumentsList({ clientRequestId }: ProposalDocumentsList
                 <span data-testid={`text-type-${document.id}`}>
                   {document.documentType === "upload" ? "Uploaded File" : "External Link"}
                 </span>
+                {document.status === "signed" && document.signatureDate && (
+                  <span data-testid={`text-signature-date-${document.id}`}>
+                    Signed: {format(new Date(document.signatureDate), "MMM d, yyyy")}
+                  </span>
+                )}
               </div>
             </div>
 

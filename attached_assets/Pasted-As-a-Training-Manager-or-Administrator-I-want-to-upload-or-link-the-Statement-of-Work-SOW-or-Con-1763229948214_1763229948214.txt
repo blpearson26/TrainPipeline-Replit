@@ -1,0 +1,87 @@
+As a Training Manager or Administrator,
+I want to upload or link the Statement of Work (SOW) or Contract and mark its current status,
+so that the team can track whether the agreement has been sent, is awaiting signature, or has been fully executed.
+
+Given / When / Then
+Given:
+
+A training engagement exists, and the proposal phase is complete.
+
+When:
+
+I select “Add SOW / Contract” from the engagement record.
+
+Then:
+
+I can upload or link the document (Word, PDF, or SharePoint link).
+
+I am prompted to set the document Status as:
+
+🟡 Pending Client Signature, or
+
+🟢 Signed / Executed.
+
+The SOW/Contract record displays in the engagement’s document list with the selected status.
+
+Acceptance Criteria
+✅ Upload / Link Functionality
+
+The user can upload a file (.docx or .pdf) or provide a valid SharePoint/Drive link.
+
+Required metadata fields:
+
+Document Title
+
+Status (Pending or Signed)
+
+Upload Date (auto)
+
+Uploaded By (auto)
+
+Optional fields: Version, Notes, Signature Date (if Signed).
+
+✅ Status Handling
+
+The default status is Pending Client Signature.
+
+Status can be updated to Signed / Executed once the client confirms.
+
+When marked as Signed, the system:
+
+Locks editing of that document (read-only).
+
+Logs the change in the engagement activity feed.
+
+Flags that engagement as “Contract Signed” for metrics.
+
+Only Admins can revert a document from “Signed” back to “Pending.”
+
+✅ Version Control
+
+If a new contract replaces an older one, the prior version is archived but still viewable.
+
+Only one SOW can hold “Signed” status per engagement.
+
+✅ Visibility & Access
+
+Trainers and team members can view/download the file or link.
+
+Only Training Managers and Admins can add or update SOWs.
+
+✅ Activity Feed Integration
+
+Each status change is logged, e.g.:
+
+“SOW v1.0 uploaded and marked Pending Signature.”
+
+“SOW v1.0 updated to Signed / Executed by Alex T.”
+
+✅ Error Handling
+
+If the user tries to upload a file without selecting a status, display:
+“Please select a document status before saving.”
+
+✅ Success Message
+
+After save:
+“SOW / Contract uploaded successfully and marked as [Status].”

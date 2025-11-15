@@ -101,6 +101,8 @@ export const proposalDocuments = pgTable("proposal_documents", {
   externalLink: text("external_link"),
   versionLabel: text("version_label").notNull(),
   notes: text("notes"),
+  status: text("status"),
+  signatureDate: timestamp("signature_date"),
   isCurrentVersion: integer("is_current_version").notNull().default(0),
   uploadedBy: varchar("uploaded_by").notNull(),
   uploadedAt: timestamp("uploaded_at").defaultNow(),

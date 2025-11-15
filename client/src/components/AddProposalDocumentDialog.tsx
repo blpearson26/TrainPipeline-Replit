@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Link as LinkIcon } from "lucide-react";
+import { format } from "date-fns";
 
 const formSchema = z.object({
   documentType: z.enum(["upload", "link"]),
@@ -18,6 +20,8 @@ const formSchema = z.object({
   externalLink: z.string().url("Must be a valid URL").optional(),
   versionLabel: z.string().min(1, "Version label is required"),
   notes: z.string().optional(),
+  status: z.enum(["pending", "signed"]).optional(),
+  signatureDate: z.date().optional(),
   file: z.any().optional(),
 }).refine((data) => {
   if (data.documentType === "upload") {
@@ -52,10 +56,12 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
       externalLink: "",
       versionLabel: "",
       notes: "",
+      status: "pending",
     },
   });
 
   const documentType = form.watch("documentType");
+  const status = form.watch("status");
 
   const createDocumentMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -112,6 +118,14 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
 
       if (data.notes && data.notes.trim()) {
         documentData.notes = data.notes.trim();
+      }
+
+      if (data.status) {
+        documentData.status = data.status;
+      }
+
+      if (data.status === "signed" && data.signatureDate) {
+        documentData.signatureDate = data.signatureDate.toISOString();
       }
 
       if (data.documentType === "upload" && selectedFile) {
@@ -276,6 +290,52 @@ export function AddProposalDocumentDialog({ clientRequestId }: AddProposalDocume
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Document Status</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-status">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="pending">🟡 Pending Client Signature</SelectItem>
+                      <SelectItem value="signed">🟢 Signed / Executed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {status === "signed" && (
+              <FormField
+                control={form.control}
+                name="signatureDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Signature Date</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                        onChange={(e) => {
+                          const date = e.target.value ? new Date(e.target.value) : undefined;
+                          field.onChange(date);
+                        }}
+                        data-testid="input-signature-date"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="flex justify-end gap-2">
               <Button
