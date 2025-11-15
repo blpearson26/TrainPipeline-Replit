@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { ProposalDocument } from "@shared/schema";
@@ -7,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Download, ExternalLink, Star, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface ProposalDocumentsListProps {
   clientRequestId: string;
@@ -15,6 +18,7 @@ interface ProposalDocumentsListProps {
 export function ProposalDocumentsList({ clientRequestId }: ProposalDocumentsListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showAllVersions, setShowAllVersions] = useState(false);
 
   const { data: documents, isLoading } = useQuery<ProposalDocument[]>({
     queryKey: ["/api/proposal-documents", clientRequestId],
@@ -99,10 +103,37 @@ export function ProposalDocumentsList({ clientRequestId }: ProposalDocumentsList
     );
   }
 
+  const filteredDocuments = showAllVersions 
+    ? documents 
+    : documents.filter(doc => doc.isCurrentVersion === 1);
+
+  const displayedDocuments = filteredDocuments.length > 0 ? filteredDocuments : documents;
+
   return (
-    <div className="space-y-3">
-      {documents.map((document) => (
-        <Card key={document.id} className="p-4" data-testid={`card-document-${document.id}`}>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {showAllVersions 
+            ? `Showing all ${documents.length} document${documents.length !== 1 ? 's' : ''}`
+            : `Showing ${displayedDocuments.length} current version${displayedDocuments.length !== 1 ? 's' : ''}`
+          }
+        </p>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="show-all-versions"
+            checked={showAllVersions}
+            onCheckedChange={setShowAllVersions}
+            data-testid="switch-show-all-versions"
+          />
+          <Label htmlFor="show-all-versions" className="cursor-pointer">
+            Show all versions
+          </Label>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {displayedDocuments.map((document) => (
+          <Card key={document.id} className="p-4" data-testid={`card-document-${document.id}`}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
@@ -201,8 +232,9 @@ export function ProposalDocumentsList({ clientRequestId }: ProposalDocumentsList
               )}
             </div>
           </div>
-        </Card>
-      ))}
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
