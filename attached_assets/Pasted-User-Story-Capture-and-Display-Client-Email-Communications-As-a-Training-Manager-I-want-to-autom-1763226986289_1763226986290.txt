@@ -1,0 +1,107 @@
+User Story: Capture and Display Client Email Communications
+As a Training Manager,
+I want to automatically capture and display all email communications between clients, training managers, and trainers,
+so that the entire project team can see a complete communication history within the training engagement record and ensure context, accountability, and transparency.
+
+Given / When / Then
+Given:
+
+There is an active or completed training request / engagement in the system.
+
+Email exchanges occur between any of the following parties:
+
+Client / Sponsor
+
+Training Manager
+
+Trainer(s)
+
+Administrator
+
+When:
+
+An email is sent to or from an address associated with the engagement (e.g., the client’s email or training manager’s email),
+
+Or an authorized user uploads / forwards an email thread into the system,
+
+Then:
+
+The system automatically (or via manual upload) captures the email content, including:
+
+Sender Name and Email Address
+
+Recipient(s)
+
+Date and Time Sent
+
+Subject Line
+
+Body (text)
+
+Attachments (if any)
+
+The captured email is displayed in the Communications History section of the training engagement, in chronological order with existing notes, calls, and meeting summaries.
+
+Acceptance Criteria
+✅ Capture Methods
+
+The system can capture emails in one or more of the following ways:
+
+Automatic sync~~ with organization’s email system (e.g., Gmail/Outlook API connection).~~
+
+Manual upload via “Add Email Communication” button (paste or drag/drop .eml, .msg, or text).
+
+Email forwarding alias (e.g., project123@trainingapp.ai) that automatically logs any forwarded email to that address.
+
+Only emails associated with the engagement’s participants or designated alias are logged.
+
+✅ Display & Organization
+
+Captured emails are listed in a Communications History tab under the training request.
+
+Each entry shows:
+
+Sender, Recipients, Date, Subject (in summary view)
+
+Full message body (expandable)
+
+Attachments (downloadable if user has permission)
+
+Emails are ordered newest to oldest, with filters for Sender, Type (Email / Call / Note), or Date Range.
+
+Threaded conversations are grouped visually (like message chains).
+
+✅ Security & Access Control
+
+Only authorized team members (Training Manager, assigned Trainer, Admin) can view full email content.
+
+Sensitive attachments or notes can be restricted to Admins or designated roles.
+
+Email data is encrypted and stored in compliance with SOC2 requirements.
+
+✅ Search & Traceability
+
+Users can search by keyword, sender, or date within the Communications History.
+
+Each email record links back to its related training request.
+
+The system maintains an audit log of when each message was captured and by whom.
+
+✅ Feedback & Validation
+
+If a user uploads or forwards an invalid or duplicate email, the system provides an error or warning (e.g., “Email already logged”).
+
+Upon successful capture, a message confirms:
+“Email communication successfully recorded in engagement history.”
+
+✅ Stretch Goals / Future Enhancements
+
+AI summarization: Automatically generate short summaries of long threads.
+
+Tagging: Users can tag emails as Client Decision, Change Request, FYI, etc.
+
+Integration with Coordination Calls: Links between emails and related meeting notes.
+
+Metrics Reporting: Analytics dashboard for total communications per engagement or response time tracking.
+
+

@@ -76,6 +76,22 @@ export const coordinationCalls = pgTable("coordination_calls", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const emailCommunications = pgTable("email_communications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientRequestId: varchar("client_request_id").notNull(),
+  senderName: text("sender_name").notNull(),
+  senderEmail: text("sender_email").notNull(),
+  recipients: text("recipients").notNull(),
+  sentDateTime: timestamp("sent_date_time").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  attachments: jsonb("attachments"),
+  threadId: text("thread_id"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const clients = pgTable("clients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyName: text("company_name").notNull(),
@@ -153,6 +169,9 @@ export const insertScopingCallSchema = createInsertSchema(scopingCalls).omit({ i
 export const insertCoordinationCallSchema = createInsertSchema(coordinationCalls).omit({ id: true, createdAt: true, updatedAt: true }).extend({
   callDateTime: z.coerce.date(),
 });
+export const insertEmailCommunicationSchema = createInsertSchema(emailCommunications).omit({ id: true, createdAt: true, updatedAt: true }).extend({
+  sentDateTime: z.coerce.date(),
+});
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
 export const insertProposalSchema = createInsertSchema(proposals).omit({ id: true, createdAt: true, approvedAt: true });
 export const insertTrainingSessionSchema = createInsertSchema(trainingSessions).omit({ id: true });
@@ -166,6 +185,8 @@ export type ScopingCall = typeof scopingCalls.$inferSelect;
 export type InsertScopingCall = z.infer<typeof insertScopingCallSchema>;
 export type CoordinationCall = typeof coordinationCalls.$inferSelect;
 export type InsertCoordinationCall = z.infer<typeof insertCoordinationCallSchema>;
+export type EmailCommunication = typeof emailCommunications.$inferSelect;
+export type InsertEmailCommunication = z.infer<typeof insertEmailCommunicationSchema>;
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Proposal = typeof proposals.$inferSelect;

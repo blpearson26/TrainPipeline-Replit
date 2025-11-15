@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema } from "@shared/schema";
+import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema, insertEmailCommunicationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
@@ -207,6 +207,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting coordination call:", error);
       res.status(500).json({ message: "Failed to delete coordination call" });
+    }
+  });
+
+  app.get('/api/client-requests/:requestId/email-communications', isAuthenticated, async (req, res) => {
+    try {
+      const emails = await storage.getEmailCommunicationsByRequest(req.params.requestId);
+      res.json(emails);
+    } catch (error) {
+      console.error("Error fetching email communications:", error);
+      res.status(500).json({ message: "Failed to fetch email communications" });
+    }
+  });
+
+  app.post('/api/email-communications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertEmailCommunicationSchema.parse({
+        ...req.body,
+        createdBy: userId,
+      });
+
+      const duplicate = await storage.findDuplicateEmail(
+        validatedData.clientRequestId,
+        validatedData.subject,
+        validatedData.sentDateTime
+      );
+
+      if (duplicate) {
+        return res.status(409).json({ 
+          message: "Email already logged",
+          existingEmail: duplicate 
+        });
+      }
+
+      const newEmail = await storage.createEmailCommunication(validatedData);
+      res.status(201).json(newEmail);
+    } catch (error) {
+      console.error("Error creating email communication:", error);
+      res.status(400).json({ message: "Failed to create email communication", error });
+    }
+  });
+
+  app.get('/api/email-communications/:id', isAuthenticated, async (req, res) => {
+    try {
+      const email = await storage.getEmailCommunication(req.params.id);
+      if (!email) {
+        return res.status(404).json({ message: "Email communication not found" });
+      }
+      res.json(email);
+    } catch (error) {
+      console.error("Error fetching email communication:", error);
+      res.status(500).json({ message: "Failed to fetch email communication" });
+    }
+  });
+
+  app.patch('/api/email-communications/:id', isAuthenticated, async (req, res) => {
+    try {
+      const partialData = insertEmailCommunicationSchema.partial().parse(req.body);
+      const updated = await storage.updateEmailCommunication(req.params.id, partialData);
+      if (!updated) {
+        return res.status(404).json({ message: "Email communication not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating email communication:", error);
+      res.status(400).json({ message: "Failed to update email communication", error });
+    }
+  });
+
+  app.delete('/api/email-communications/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteEmailCommunication(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting email communication:", error);
+      res.status(500).json({ message: "Failed to delete email communication" });
     }
   });
 

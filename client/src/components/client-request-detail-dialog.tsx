@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import type { ClientRequest, ScopingCall, CoordinationCall } from "@shared/schema";
+import type { ClientRequest, ScopingCall, CoordinationCall, EmailCommunication } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,12 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { RecordScopingCallDialog } from "./record-scoping-call-dialog";
 import { RecordCoordinationCallDialog } from "./record-coordination-call-dialog";
+import { AddEmailCommunicationDialog } from "./add-email-communication-dialog";
 import { ScopingCallDetail } from "./scoping-call-detail";
 import { CoordinationCallDetail } from "./coordination-call-detail";
+import { EmailCommunicationDetail } from "./email-communication-detail";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Mail, Phone, Users, MapPin } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 
 interface ClientRequestDetailDialogProps {
@@ -30,6 +33,8 @@ export function ClientRequestDetailDialog({
   open,
   onOpenChange,
 }: ClientRequestDetailDialogProps) {
+  const [activeTab, setActiveTab] = useState("all");
+
   const { data: scopingCalls } = useQuery<ScopingCall[]>({
     queryKey: ["/api/client-requests", request.id, "scoping-calls"],
     enabled: open,
@@ -40,8 +45,49 @@ export function ClientRequestDetailDialog({
     enabled: open,
   });
 
+  const { data: emailCommunications } = useQuery<EmailCommunication[]>({
+    queryKey: ["/api/client-requests", request.id, "email-communications"],
+    enabled: open,
+  });
+
   const latestScopingCall = scopingCalls?.[0];
-  const hasAnyCalls = (scopingCalls && scopingCalls.length > 0) || (coordinationCalls && coordinationCalls.length > 0);
+
+  const allCommunications = useMemo(() => {
+    const items: Array<{ type: string; date: Date; data: any }> = [];
+
+    scopingCalls?.forEach((call) => {
+      items.push({
+        type: "scoping",
+        date: new Date(call.createdAt || 0),
+        data: call,
+      });
+    });
+
+    coordinationCalls?.forEach((call) => {
+      items.push({
+        type: "coordination",
+        date: new Date(call.callDateTime),
+        data: call,
+      });
+    });
+
+    emailCommunications?.forEach((email) => {
+      items.push({
+        type: "email",
+        date: new Date(email.sentDateTime),
+        data: email,
+      });
+    });
+
+    return items.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [scopingCalls, coordinationCalls, emailCommunications]);
+
+  const filteredCommunications = useMemo(() => {
+    if (activeTab === "all") return allCommunications;
+    return allCommunications.filter((comm) => comm.type === activeTab);
+  }, [allCommunications, activeTab]);
+
+  const hasAnyCommunications = allCommunications.length > 0;
 
   const statusColors = {
     new: "bg-blue-500",
@@ -118,54 +164,80 @@ export function ClientRequestDetailDialog({
           </Card>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h3 className="text-lg font-semibold">Communication History</h3>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <RecordScopingCallDialog
                   clientRequestId={request.id}
                   existingCall={latestScopingCall}
                 />
                 {latestScopingCall && (
-                  <RecordCoordinationCallDialog
-                    clientRequestId={request.id}
-                  />
+                  <>
+                    <RecordCoordinationCallDialog
+                      clientRequestId={request.id}
+                    />
+                    <AddEmailCommunicationDialog
+                      clientRequestId={request.id}
+                    />
+                  </>
                 )}
               </div>
             </div>
 
-            {hasAnyCalls ? (
-              <div className="space-y-6">
-                {latestScopingCall && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-muted-foreground">Scoping Call</h4>
-                    <ScopingCallDetail call={latestScopingCall} clientName={request.clientName} />
-                  </div>
-                )}
+            {hasAnyCommunications ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                  <TabsTrigger value="all" data-testid="tab-all">
+                    All ({allCommunications.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="scoping" data-testid="tab-scoping">
+                    Scoping ({scopingCalls?.length || 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="coordination" data-testid="tab-coordination">
+                    Coordination ({coordinationCalls?.length || 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="email" data-testid="tab-email">
+                    Email ({emailCommunications?.length || 0})
+                  </TabsTrigger>
+                </TabsList>
 
-                {coordinationCalls && coordinationCalls.length > 0 && (
-                  <div className="space-y-4">
-                    <Separator />
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      Coordination Calls ({coordinationCalls.length})
-                    </h4>
-                    <div className="space-y-4">
-                      {coordinationCalls.map((call) => (
+                <TabsContent value={activeTab} className="space-y-4 mt-4">
+                  {filteredCommunications.map((comm, index) => {
+                    if (comm.type === "scoping") {
+                      return (
+                        <ScopingCallDetail
+                          key={`scoping-${comm.data.id}`}
+                          call={comm.data}
+                          clientName={request.clientName}
+                        />
+                      );
+                    } else if (comm.type === "coordination") {
+                      return (
                         <CoordinationCallDetail
-                          key={call.id}
-                          call={call}
+                          key={`coordination-${comm.data.id}`}
+                          call={comm.data}
                           clientName={request.clientName}
                           clientRequestId={request.id}
                         />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                      );
+                    } else if (comm.type === "email") {
+                      return (
+                        <EmailCommunicationDetail
+                          key={`email-${comm.data.id}`}
+                          email={comm.data}
+                          clientName={request.clientName}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                </TabsContent>
+              </Tabs>
             ) : (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground" data-testid="text-no-calls">
-                    No calls recorded yet. Click "Record Scoping Call" to capture details from your initial conversation with the client.
+                  <p className="text-muted-foreground" data-testid="text-no-communications">
+                    No communications recorded yet. Start by recording the scoping call to capture details from your initial conversation with the client.
                   </p>
                 </CardContent>
               </Card>

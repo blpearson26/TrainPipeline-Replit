@@ -1,6 +1,6 @@
-import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest, scopingCalls, type ScopingCall, type InsertScopingCall, coordinationCalls, type CoordinationCall, type InsertCoordinationCall } from "@shared/schema";
+import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest, scopingCalls, type ScopingCall, type InsertScopingCall, coordinationCalls, type CoordinationCall, type InsertCoordinationCall, emailCommunications, type EmailCommunication, type InsertEmailCommunication } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -23,6 +23,13 @@ export interface IStorage {
   getCoordinationCall(id: string): Promise<CoordinationCall | undefined>;
   updateCoordinationCall(id: string, call: Partial<InsertCoordinationCall>): Promise<CoordinationCall | undefined>;
   deleteCoordinationCall(id: string): Promise<void>;
+  
+  createEmailCommunication(email: InsertEmailCommunication): Promise<EmailCommunication>;
+  getEmailCommunicationsByRequest(clientRequestId: string): Promise<EmailCommunication[]>;
+  getEmailCommunication(id: string): Promise<EmailCommunication | undefined>;
+  findDuplicateEmail(clientRequestId: string, subject: string, sentDateTime: Date): Promise<EmailCommunication | undefined>;
+  updateEmailCommunication(id: string, email: Partial<InsertEmailCommunication>): Promise<EmailCommunication | undefined>;
+  deleteEmailCommunication(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -166,6 +173,62 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(coordinationCalls)
       .where(eq(coordinationCalls.id, id));
+  }
+
+  async createEmailCommunication(email: InsertEmailCommunication): Promise<EmailCommunication> {
+    const [newEmail] = await db
+      .insert(emailCommunications)
+      .values(email)
+      .returning();
+    return newEmail;
+  }
+
+  async getEmailCommunicationsByRequest(clientRequestId: string): Promise<EmailCommunication[]> {
+    return await db
+      .select()
+      .from(emailCommunications)
+      .where(eq(emailCommunications.clientRequestId, clientRequestId))
+      .orderBy(desc(emailCommunications.sentDateTime));
+  }
+
+  async getEmailCommunication(id: string): Promise<EmailCommunication | undefined> {
+    const [email] = await db
+      .select()
+      .from(emailCommunications)
+      .where(eq(emailCommunications.id, id));
+    return email;
+  }
+
+  async findDuplicateEmail(clientRequestId: string, subject: string, sentDateTime: Date): Promise<EmailCommunication | undefined> {
+    const [email] = await db
+      .select()
+      .from(emailCommunications)
+      .where(
+        and(
+          eq(emailCommunications.clientRequestId, clientRequestId),
+          eq(emailCommunications.subject, subject),
+          eq(emailCommunications.sentDateTime, sentDateTime)
+        )
+      );
+    return email;
+  }
+
+  async updateEmailCommunication(id: string, email: Partial<InsertEmailCommunication>): Promise<EmailCommunication | undefined> {
+    const [updated] = await db
+      .update(emailCommunications)
+      .set({
+        ...email,
+        updatedAt: new Date(),
+      })
+      .where(eq(emailCommunications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteEmailCommunication(id: string): Promise<void> {
+    await db
+      .delete(emailCommunications)
+      .where(eq(emailCommunications.id, id));
   }
 }
 
