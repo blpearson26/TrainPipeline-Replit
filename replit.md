@@ -65,6 +65,10 @@ Preferred communication style: Simple, everyday language.
 **Schema Design**
 - `users` table: Stores authenticated user profiles (id, email, name, profile image)
 - `sessions` table: Server-side session storage with expiration handling
+- `clientRequests` table: Initial client training requests with intake information
+- `scopingCalls` table: Detailed notes from initial scoping conversations
+- `coordinationCalls` table: Follow-up call records tracking changes and updates
+- `emailCommunications` table: Email correspondence between team and clients
 - `clients` table: Client company information and contact details
 - `proposals` table: Training proposals with status tracking and amounts
 
@@ -83,17 +87,30 @@ Preferred communication style: Simple, everyday language.
 
 **Key Pages**
 - Dashboard: Overview with metrics, upcoming sessions, and activity feed
-- Clients: Client management with search and filtering
+- Client Requests: Client training request management with detailed communication history
+- Clients: Client company information and contact details
 - Proposals: Proposal tracking with status-based views
 - Sessions: Training session calendar and management
 - Invoices: Invoice generation and payment tracking
+- Settings: User preferences including theme customization
+
+**Communication Tracking**
+- Unified communication history displaying all interactions chronologically
+- Scoping call recording with training objectives, delivery mode, and requirements
+- Coordination call tracking for follow-up discussions and scope changes
+- Email communication capture with manual entry and duplicate detection
+- Type-based filtering (All, Scoping, Coordination, Email)
+- Expandable email bodies for space-efficient display
+- Copy-to-clipboard functionality for email content
 
 **Reusable Components**
-- Card-based layouts for displaying entities (ClientCard, ProposalCard, SessionCard, InvoiceCard)
+- Dialog-based forms for recording communications (RecordScopingCallDialog, RecordCoordinationCallDialog, AddEmailCommunicationDialog)
+- Detail view components (ScopingCallDetail, CoordinationCallDetail, EmailCommunicationDetail)
+- ClientRequestDetailDialog with integrated communication history and filtering
+- Card-based layouts for displaying entities
 - StatCard for dashboard metrics
 - ActivityFeed for recent system activity
 - StatusBadge for visual status indicators
-- AppSidebar for persistent navigation
 
 ## External Dependencies
 
