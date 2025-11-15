@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema, insertEmailCommunicationSchema, insertProposalDocumentSchema } from "@shared/schema";
+import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema, insertEmailCommunicationSchema, insertProposalDocumentSchema, insertTrainingSessionSchema } from "@shared/schema";
 import { generatePresignedUploadUrl, generatePresignedDownloadUrl } from "./objectStorage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -496,6 +496,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error calculating conversion metrics:", error);
       res.status(500).json({ message: "Failed to calculate metrics" });
+    }
+  });
+
+  app.get('/api/training-sessions', isAuthenticated, async (req, res) => {
+    try {
+      const { startDate, endDate, clientName, instructor, deliveryMode } = req.query;
+      
+      let sessions = await storage.getTrainingSessions();
+      
+      // Apply filters if provided
+      if (startDate || endDate || clientName || instructor || deliveryMode) {
+        sessions = sessions.filter(session => {
+          if (startDate) {
+            const start = new Date(`${startDate}T00:00:00`);
+            if (new Date(session.startDate) < start) return false;
+          }
+          if (endDate) {
+            const end = new Date(`${endDate}T23:59:59.999`);
+            if (new Date(session.startDate) > end) return false;
+          }
+          if (clientName && !session.clientName.toLowerCase().includes((clientName as string).toLowerCase())) {
+            return false;
+          }
+          if (instructor && !session.instructor.toLowerCase().includes((instructor as string).toLowerCase())) {
+            return false;
+          }
+          if (deliveryMode && session.deliveryMode !== deliveryMode) {
+            return false;
+          }
+          return true;
+        });
+      }
+      
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching training sessions:", error);
+      res.status(500).json({ message: "Failed to fetch training sessions" });
+    }
+  });
+
+  app.post('/api/training-sessions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertTrainingSessionSchema.parse({
+        ...req.body,
+        createdBy: userId,
+      });
+      const newSession = await storage.createTrainingSession(validatedData);
+      res.status(201).json(newSession);
+    } catch (error) {
+      console.error("Error creating training session:", error);
+      res.status(500).json({ message: "Failed to create training session" });
+    }
+  });
+
+  app.get('/api/training-sessions/:id', isAuthenticated, async (req, res) => {
+    try {
+      const session = await storage.getTrainingSession(req.params.id);
+      if (!session) {
+        return res.status(404).json({ message: "Training session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      console.error("Error fetching training session:", error);
+      res.status(500).json({ message: "Failed to fetch training session" });
+    }
+  });
+
+  app.patch('/api/training-sessions/:id', isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertTrainingSessionSchema.partial().parse(req.body);
+      const updated = await storage.updateTrainingSession(req.params.id, validatedData);
+      if (!updated) {
+        return res.status(404).json({ message: "Training session not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating training session:", error);
+      res.status(500).json({ message: "Failed to update training session" });
+    }
+  });
+
+  app.delete('/api/training-sessions/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteTrainingSession(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting training session:", error);
+      res.status(500).json({ message: "Failed to delete training session" });
     }
   });
 
