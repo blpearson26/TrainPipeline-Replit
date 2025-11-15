@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Calendar as CalendarIcon, List, Plus, X, Download, MapPin, Video, Users, Clock, User } from "lucide-react";
+import { Calendar as CalendarIcon, List, Plus, X, Download, MapPin, Video, Users, Clock, User, Pencil } from "lucide-react";
 import { format } from "date-fns";
+import { AddTrainingSessionDialog } from "@/components/AddTrainingSessionDialog";
 
 type ViewMode = "list" | "calendar";
 
@@ -115,10 +116,7 @@ export default function Sessions() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button data-testid="button-new-session">
-            <Plus className="h-4 w-4 mr-2" />
-            New Session
-          </Button>
+          <AddTrainingSessionDialog />
         </div>
       </div>
 
@@ -378,10 +376,10 @@ export default function Sessions() {
                 </div>
               </div>
 
-              {selectedSession.notes && (
+              {selectedSession.description && (
                 <div>
-                  <Label className="text-sm text-muted-foreground">Notes</Label>
-                  <p className="text-sm mt-2 whitespace-pre-wrap" data-testid="detail-notes">{selectedSession.notes}</p>
+                  <Label className="text-sm text-muted-foreground">Description</Label>
+                  <p className="text-sm mt-2 whitespace-pre-wrap" data-testid="detail-description">{selectedSession.description}</p>
                 </div>
               )}
 
@@ -389,9 +387,20 @@ export default function Sessions() {
                 <Badge variant={getStatusVariant(selectedSession.status)} data-testid="detail-status">
                   {selectedSession.status}
                 </Badge>
-                <span className="text-sm text-muted-foreground ml-auto">
-                  Created {format(new Date(selectedSession.createdAt), "MMM d, yyyy")}
-                </span>
+                {selectedSession.createdAt && (
+                  <span className="text-sm text-muted-foreground ml-auto">
+                    Created {format(new Date(selectedSession.createdAt), "MMM d, yyyy")}
+                  </span>
+                )}
+                <AddTrainingSessionDialog 
+                  session={selectedSession}
+                  trigger={
+                    <Button variant="outline" size="sm" data-testid="button-edit-session">
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit Event
+                    </Button>
+                  }
+                />
               </div>
             </div>
           )}

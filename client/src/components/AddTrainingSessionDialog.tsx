@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Plus } from "lucide-react";
 import { type TrainingSession, type Client } from "@shared/schema";
 import { z } from "zod";
@@ -31,7 +32,23 @@ const formSchema = z.object({
   facilitators: z.string().optional(),
   status: z.enum(["tentative", "confirmed", "completed"]),
   participantCount: z.number().optional(),
-  createdBy: z.string(),
+}).superRefine((data, ctx) => {
+  // Validate location is provided for on-site or hybrid
+  if ((data.deliveryMode === "on-site" || data.deliveryMode === "hybrid") && !data.location?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Location is required for on-site and hybrid delivery modes",
+      path: ["location"],
+    });
+  }
+  // Validate virtual link is provided for virtual or hybrid
+  if ((data.deliveryMode === "virtual" || data.deliveryMode === "hybrid") && !data.virtualLink?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Virtual meeting link is required for virtual and hybrid delivery modes",
+      path: ["virtualLink"],
+    });
+  }
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -46,6 +63,7 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isEditing = !!session;
+  const { user } = useAuth();
 
   const { data: clients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
@@ -69,7 +87,7 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
       facilitators: session.facilitators?.join(", ") ?? undefined,
       status: session.status as "tentative" | "confirmed" | "completed",
       participantCount: session.participantCount ?? undefined,
-      createdBy: session.createdBy,
+      proposalId: session.proposalId ?? undefined,
     } : {
       clientId: "",
       clientName: "",
@@ -86,7 +104,7 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
       facilitators: undefined,
       status: "tentative",
       participantCount: undefined,
-      createdBy: "",
+      proposalId: undefined,
     },
   });
 
@@ -145,11 +163,20 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
   });
 
   const onSubmit = async (data: FormData) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create or edit training sessions",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const startDateTime = new Date(`${data.startDate}T${data.startTime}`);
       const endDateTime = new Date(`${data.endDate}T${data.endTime}`);
 
-      const sessionData = {
+      const sessionData: any = {
         clientId: data.clientId,
         clientName: data.clientName,
         title: data.title,
@@ -160,10 +187,16 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
         location: data.location || null,
         virtualLink: data.virtualLink || null,
         instructor: data.instructor,
-        facilitators: data.facilitators ? data.facilitators.split(",").map(f => f.trim()).filter(f => f) : null,
+        facilitators: data.facilitators ? data.facilitators.split(",").map((f: string) => f.trim()).filter((f: string) => f) : null,
         status: data.status,
         participantCount: data.participantCount || null,
+        proposalId: data.proposalId || null,
       };
+
+      // Include createdBy when creating a new session
+      if (!isEditing) {
+        sessionData.createdBy = user.id;
+      }
 
       if (isEditing) {
         await updateMutation.mutateAsync(sessionData);
@@ -369,7 +402,7 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Location</FormLabel>
+                    <FormLabel>Location *</FormLabel>
                     <FormControl>
                       <Input 
                         {...field} 
@@ -389,7 +422,7 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
                 name="virtualLink"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Virtual Meeting Link</FormLabel>
+                    <FormLabel>Virtual Meeting Link *</FormLabel>
                     <FormControl>
                       <Input 
                         {...field} 
