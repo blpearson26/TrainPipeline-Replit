@@ -536,6 +536,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/training-sessions/conflicts', isAuthenticated, async (req, res) => {
+    try {
+      const { instructor, startDate, endDate, excludeSessionId } = req.body;
+      
+      if (!instructor || !startDate || !endDate) {
+        return res.status(400).json({ message: "Missing required fields: instructor, startDate, endDate" });
+      }
+
+      const conflicts = await storage.findConflictingSessions(
+        instructor,
+        new Date(startDate),
+        new Date(endDate),
+        excludeSessionId
+      );
+
+      res.json(conflicts);
+    } catch (error) {
+      console.error("Error checking for conflicts:", error);
+      res.status(500).json({ message: "Failed to check for conflicts" });
+    }
+  });
+
   app.post('/api/training-sessions', isAuthenticated, async (req: any, res) => {
     try {
       // Ensure user is authenticated
@@ -550,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Clear mode-inapplicable fields after validation
-      const cleanedData = {
+      let cleanedData: any = {
         ...validatedData,
         location: (validatedData.deliveryMode === "on-site" || validatedData.deliveryMode === "hybrid") 
           ? validatedData.location 
@@ -559,6 +581,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? validatedData.virtualLink 
           : null,
       };
+
+      // If conflict override, append audit note to description
+      if (req.body.conflictOverride && req.body.conflictNote) {
+        const auditNote = `\n\n[${new Date().toISOString()}] CONFLICT OVERRIDE: ${req.body.conflictNote}`;
+        cleanedData.description = (cleanedData.description || '') + auditNote;
+      }
       
       const newSession = await storage.createTrainingSession(cleanedData);
       res.status(201).json(newSession);
@@ -624,7 +652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = trainingSessionValidationSchema.parse(mergedForValidation);
 
       // Clear mode-inapplicable fields after validation
-      const cleanedData = {
+      let cleanedData: any = {
         ...validatedData,
         location: (validatedData.deliveryMode === "on-site" || validatedData.deliveryMode === "hybrid") 
           ? validatedData.location 
@@ -633,6 +661,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? validatedData.virtualLink 
           : null,
       };
+
+      // If conflict override, append audit note to description
+      if (req.body.conflictOverride && req.body.conflictNote) {
+        const auditNote = `\n\n[${new Date().toISOString()}] CONFLICT OVERRIDE: ${req.body.conflictNote}`;
+        cleanedData.description = (cleanedData.description || '') + auditNote;
+      }
 
       const updated = await storage.updateTrainingSession(req.params.id, cleanedData);
       res.json(updated);
