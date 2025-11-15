@@ -25,6 +25,20 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const clientRequests = pgTable("client_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientName: text("client_name").notNull(),
+  pointOfContact: text("point_of_contact").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  initialTopicRequests: text("initial_topic_requests").notNull(),
+  numberOfAttendees: integer("number_of_attendees").notNull(),
+  mode: text("mode").notNull(),
+  scopingCallDate: timestamp("scoping_call_date").notNull(),
+  status: text("status").notNull().default("new"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const clients = pgTable("clients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyName: text("company_name").notNull(),
@@ -95,6 +109,9 @@ export const invoices = pgTable("invoices", {
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
+export const insertClientRequestSchema = createInsertSchema(clientRequests).omit({ id: true, createdAt: true }).extend({
+  scopingCallDate: z.coerce.date(),
+});
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
 export const insertProposalSchema = createInsertSchema(proposals).omit({ id: true, createdAt: true, approvedAt: true });
 export const insertTrainingSessionSchema = createInsertSchema(trainingSessions).omit({ id: true });
@@ -102,6 +119,8 @@ export const insertCurriculumItemSchema = createInsertSchema(curriculumItems).om
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id: true, submittedAt: true });
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true, paidAt: true });
 
+export type ClientRequest = typeof clientRequests.$inferSelect;
+export type InsertClientRequest = z.infer<typeof insertClientRequestSchema>;
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type Proposal = typeof proposals.$inferSelect;

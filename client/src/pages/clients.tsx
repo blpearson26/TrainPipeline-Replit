@@ -1,93 +1,79 @@
 import { useState } from "react";
-import { ClientCard } from "@/components/client-card";
-import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { ClientRequestCard } from "@/components/client-request-card";
+import { CreateClientRequestDialog } from "@/components/create-client-request-dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { ClientRequest } from "@shared/schema";
 
 export default function Clients() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  //todo: remove mock functionality
-  const mockClients = [
-    {
-      id: "1",
-      companyName: "TechCorp Industries",
-      contactName: "Sarah Johnson",
-      email: "sarah.j@techcorp.com",
-      phone: "+1 (555) 123-4567",
-      industry: "Technology",
-      status: "active" as const,
-    },
-    {
-      id: "2",
-      companyName: "Global Innovations",
-      contactName: "Michael Chen",
-      email: "m.chen@globalinnovations.io",
-      phone: "+1 (555) 987-6543",
-      industry: "Finance",
-      status: "active" as const,
-    },
-    {
-      id: "3",
-      companyName: "StartUp Labs",
-      contactName: "Emma Wilson",
-      email: "emma@startuplabs.com",
-      phone: "+1 (555) 456-7890",
-      industry: "Software",
-      status: "pending" as const,
-    },
-    {
-      id: "4",
-      companyName: "Enterprise Solutions Ltd",
-      contactName: "David Martinez",
-      email: "d.martinez@enterprisesol.com",
-      phone: "+1 (555) 321-9876",
-      industry: "Consulting",
-      status: "active" as const,
-    },
-  ];
+  const { data: requests, isLoading } = useQuery<ClientRequest[]>({
+    queryKey: ["/api/client-requests"],
+  });
+
+  const filteredRequests = requests?.filter((request) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      request.clientName.toLowerCase().includes(searchLower) ||
+      request.pointOfContact.toLowerCase().includes(searchLower) ||
+      request.email.toLowerCase().includes(searchLower) ||
+      request.initialTopicRequests.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Clients</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your training clients and contacts</p>
+          <h1 className="text-2xl font-semibold">Client Requests</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track and manage incoming training requests
+          </p>
         </div>
-        <Button data-testid="button-add-client">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Client
-        </Button>
+        <CreateClientRequestDialog />
       </div>
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search clients..."
+            placeholder="Search requests..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
-            data-testid="input-search-clients"
+            data-testid="input-search-requests"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        {mockClients.map((client) => (
-          <ClientCard
-            key={client.id}
-            companyName={client.companyName}
-            contactName={client.contactName}
-            email={client.email}
-            phone={client.phone}
-            industry={client.industry}
-            status={client.status}
-            onView={() => console.log("View client", client.id)}
-            onEdit={() => console.log("Edit client", client.id)}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-64" data-testid={`skeleton-${i}`} />
+          ))}
+        </div>
+      ) : filteredRequests && filteredRequests.length > 0 ? (
+        <div className="grid grid-cols-3 gap-4">
+          {filteredRequests.map((request) => (
+            <ClientRequestCard
+              key={request.id}
+              request={request}
+              onView={() => console.log("View request", request.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground" data-testid="text-no-requests">
+            {searchQuery
+              ? "No requests found matching your search"
+              : "No client requests yet. Create your first one!"}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
