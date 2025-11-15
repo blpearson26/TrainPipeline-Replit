@@ -12,6 +12,8 @@ import {
 import { RecordScopingCallDialog } from "./record-scoping-call-dialog";
 import { RecordCoordinationCallDialog } from "./record-coordination-call-dialog";
 import { AddEmailCommunicationDialog } from "./add-email-communication-dialog";
+import { AddProposalDocumentDialog } from "./AddProposalDocumentDialog";
+import { ProposalDocumentsList } from "./ProposalDocumentsList";
 import { ScopingCallDetail } from "./scoping-call-detail";
 import { CoordinationCallDetail } from "./coordination-call-detail";
 import { EmailCommunicationDetail } from "./email-communication-detail";
@@ -33,6 +35,7 @@ export function ClientRequestDetailDialog({
   open,
   onOpenChange,
 }: ClientRequestDetailDialogProps) {
+  const [mainTab, setMainTab] = useState("communications");
   const [activeTab, setActiveTab] = useState("all");
 
   const { data: scopingCalls } = useQuery<ScopingCall[]>({
@@ -163,86 +166,106 @@ export function ClientRequestDetailDialog({
             </CardContent>
           </Card>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-lg font-semibold">Communication History</h3>
-              <div className="flex gap-2 flex-wrap">
-                <RecordScopingCallDialog
-                  clientRequestId={request.id}
-                  existingCall={latestScopingCall}
-                />
-                {latestScopingCall && (
-                  <>
-                    <RecordCoordinationCallDialog
-                      clientRequestId={request.id}
-                    />
-                    <AddEmailCommunicationDialog
-                      clientRequestId={request.id}
-                    />
-                  </>
-                )}
+          <Tabs value={mainTab} onValueChange={setMainTab}>
+            <TabsList>
+              <TabsTrigger value="communications" data-testid="tab-main-communications">
+                Communications
+              </TabsTrigger>
+              <TabsTrigger value="documents" data-testid="tab-main-documents">
+                Documents
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="communications" className="space-y-4 mt-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-lg font-semibold">Communication History</h3>
+                <div className="flex gap-2 flex-wrap">
+                  <RecordScopingCallDialog
+                    clientRequestId={request.id}
+                    existingCall={latestScopingCall}
+                  />
+                  {latestScopingCall && (
+                    <>
+                      <RecordCoordinationCallDialog
+                        clientRequestId={request.id}
+                      />
+                      <AddEmailCommunicationDialog
+                        clientRequestId={request.id}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {hasAnyCommunications ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
-                  <TabsTrigger value="all" data-testid="tab-all">
-                    All ({allCommunications.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="scoping" data-testid="tab-scoping">
-                    Scoping ({scopingCalls?.length || 0})
-                  </TabsTrigger>
-                  <TabsTrigger value="coordination" data-testid="tab-coordination">
-                    Coordination ({coordinationCalls?.length || 0})
-                  </TabsTrigger>
-                  <TabsTrigger value="email" data-testid="tab-email">
-                    Email ({emailCommunications?.length || 0})
-                  </TabsTrigger>
-                </TabsList>
+              {hasAnyCommunications ? (
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList>
+                    <TabsTrigger value="all" data-testid="tab-all">
+                      All ({allCommunications.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="scoping" data-testid="tab-scoping">
+                      Scoping ({scopingCalls?.length || 0})
+                    </TabsTrigger>
+                    <TabsTrigger value="coordination" data-testid="tab-coordination">
+                      Coordination ({coordinationCalls?.length || 0})
+                    </TabsTrigger>
+                    <TabsTrigger value="email" data-testid="tab-email">
+                      Email ({emailCommunications?.length || 0})
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value={activeTab} className="space-y-4 mt-4">
-                  {filteredCommunications.map((comm, index) => {
-                    if (comm.type === "scoping") {
-                      return (
-                        <ScopingCallDetail
-                          key={`scoping-${comm.data.id}`}
-                          call={comm.data}
-                          clientName={request.clientName}
-                        />
-                      );
-                    } else if (comm.type === "coordination") {
-                      return (
-                        <CoordinationCallDetail
-                          key={`coordination-${comm.data.id}`}
-                          call={comm.data}
-                          clientName={request.clientName}
-                          clientRequestId={request.id}
-                        />
-                      );
-                    } else if (comm.type === "email") {
-                      return (
-                        <EmailCommunicationDetail
-                          key={`email-${comm.data.id}`}
-                          email={comm.data}
-                          clientName={request.clientName}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
-                </TabsContent>
-              </Tabs>
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground" data-testid="text-no-communications">
-                    No communications recorded yet. Start by recording the scoping call to capture details from your initial conversation with the client.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                  <TabsContent value={activeTab} className="space-y-4 mt-4">
+                    {filteredCommunications.map((comm, index) => {
+                      if (comm.type === "scoping") {
+                        return (
+                          <ScopingCallDetail
+                            key={`scoping-${comm.data.id}`}
+                            call={comm.data}
+                            clientName={request.clientName}
+                          />
+                        );
+                      } else if (comm.type === "coordination") {
+                        return (
+                          <CoordinationCallDetail
+                            key={`coordination-${comm.data.id}`}
+                            call={comm.data}
+                            clientName={request.clientName}
+                            clientRequestId={request.id}
+                          />
+                        );
+                      } else if (comm.type === "email") {
+                        return (
+                          <EmailCommunicationDetail
+                            key={`email-${comm.data.id}`}
+                            email={comm.data}
+                            clientName={request.clientName}
+                          />
+                        );
+                      }
+                      return null;
+                    })}
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground" data-testid="text-no-communications">
+                      No communications recorded yet. Start by recording the scoping call to capture details from your initial conversation with the client.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="documents" className="space-y-4 mt-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-lg font-semibold">Proposal Documents</h3>
+                <AddProposalDocumentDialog clientRequestId={request.id} />
+              </div>
+
+              <ProposalDocumentsList clientRequestId={request.id} />
+            </TabsContent>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>

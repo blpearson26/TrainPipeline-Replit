@@ -277,3 +277,77 @@ async function signObjectURL({
   const { signed_url: signedURL } = await response.json();
   return signedURL;
 }
+
+export async function generatePresignedUploadUrl({
+  fileName,
+  contentType,
+  userId,
+}: {
+  fileName: string;
+  contentType: string;
+  userId: string;
+}): Promise<{ uploadUrl: string; fileUrl: string }> {
+  const privateObjectDir = process.env.PRIVATE_OBJECT_DIR || "";
+  if (!privateObjectDir) {
+    throw new Error("PRIVATE_OBJECT_DIR not set");
+  }
+
+  const objectId = randomUUID();
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const fullPath = `${privateObjectDir}/uploads/${userId}/${objectId}_${sanitizedFileName}`;
+
+  const { bucketName, objectName } = parseObjectPath(fullPath);
+
+  const uploadUrl = await signObjectURL({
+    bucketName,
+    objectName,
+    method: "PUT",
+    ttlSec: 900,
+  });
+
+  const fileUrl = `/objects/uploads/${userId}/${objectId}_${sanitizedFileName}`;
+
+  return { uploadUrl, fileUrl };
+}
+
+export async function generatePresignedDownloadUrl({
+  fileUrl,
+  userId,
+}: {
+  fileUrl: string;
+  userId: string;
+}): Promise<string> {
+  const privateObjectDir = process.env.PRIVATE_OBJECT_DIR || "";
+  if (!privateObjectDir) {
+    throw new Error("PRIVATE_OBJECT_DIR not set");
+  }
+
+  if (!fileUrl.startsWith("/objects/")) {
+    throw new Error("Invalid file URL");
+  }
+
+  const objectPath = fileUrl.replace("/objects/", "");
+  const fullPath = `${privateObjectDir}/${objectPath}`;
+
+  const { bucketName, objectName } = parseObjectPath(fullPath);
+
+  const bucket = objectStorageClient.bucket(bucketName);
+  const file = bucket.file(objectName);
+  
+  const [exists] = await file.exists();
+  if (!exists) {
+    throw new Error("File not found");
+  }
+
+  const aclPolicy = await getObjectAclPolicy(file);
+  if (!aclPolicy || (aclPolicy.owner !== userId && aclPolicy.visibility !== "public")) {
+    throw new Error("Access denied");
+  }
+
+  return await signObjectURL({
+    bucketName,
+    objectName,
+    method: "GET",
+    ttlSec: 3600,
+  });
+}
