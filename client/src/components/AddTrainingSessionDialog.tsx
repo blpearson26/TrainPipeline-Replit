@@ -126,7 +126,8 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/training-sessions", data);
+      const response = await apiRequest("POST", "/api/training-sessions", data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-sessions"] });
@@ -148,7 +149,8 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("PATCH", `/api/training-sessions/${session?.id}`, data);
+      const response = await apiRequest("PATCH", `/api/training-sessions/${session?.id}`, data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-sessions"] });
@@ -167,7 +169,7 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
     },
   });
 
-  const checkForConflicts = async (sessionData: any) => {
+  const checkForConflicts = async (sessionData: any): Promise<TrainingSession[]> => {
     try {
       const response = await apiRequest("POST", "/api/training-sessions/conflicts", {
         instructor: sessionData.instructor,
@@ -175,7 +177,8 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
         endDate: sessionData.endDate,
         excludeSessionId: isEditing ? session?.id : undefined,
       });
-      return response as TrainingSession[];
+      const data = await response.json();
+      return data as TrainingSession[];
     } catch (error) {
       console.error("Error checking for conflicts:", error);
       return [];
