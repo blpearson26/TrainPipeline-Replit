@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Calendar as CalendarIcon, List, Plus, X, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Calendar as CalendarIcon, List, Plus, X, Download, MapPin, Video, Users, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 
 type ViewMode = "list" | "calendar";
@@ -20,6 +21,7 @@ export default function Sessions() {
   const [clientName, setClientName] = useState<string>("");
   const [instructor, setInstructor] = useState<string>("");
   const [deliveryMode, setDeliveryMode] = useState<string>("");
+  const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
 
   const queryParams = new URLSearchParams();
   if (startDate) queryParams.append("startDate", startDate);
@@ -242,6 +244,7 @@ export default function Sessions() {
                   <TableRow
                     key={session.id}
                     className="cursor-pointer hover-elevate"
+                    onClick={() => setSelectedSession(session)}
                     data-testid={`row-session-${session.id}`}
                   >
                     <TableCell className="font-medium" data-testid={`text-title-${session.id}`}>
@@ -290,6 +293,110 @@ export default function Sessions() {
           </div>
         </Card>
       )}
+
+      <Dialog open={selectedSession !== null} onOpenChange={(open) => !open && setSelectedSession(null)}>
+        <DialogContent className="max-w-2xl" data-testid="dialog-session-detail">
+          <DialogHeader>
+            <DialogTitle>{selectedSession?.title}</DialogTitle>
+            <DialogDescription>Training session details</DialogDescription>
+          </DialogHeader>
+          {selectedSession && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Client Name</Label>
+                      <p className="font-medium" data-testid="detail-client">{selectedSession.clientName}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Instructor</Label>
+                      <p className="font-medium" data-testid="detail-instructor">{selectedSession.instructor}</p>
+                    </div>
+                  </div>
+                  {selectedSession.facilitators && selectedSession.facilitators.length > 0 && (
+                    <div className="flex items-start gap-3">
+                      <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Facilitators</Label>
+                        <p className="font-medium" data-testid="detail-facilitators">
+                          {selectedSession.facilitators.join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Date & Time</Label>
+                      <p className="font-medium" data-testid="detail-date">
+                        {format(new Date(selectedSession.startDate), "MMMM d, yyyy")}
+                      </p>
+                      <p className="text-sm text-muted-foreground" data-testid="detail-time">
+                        {format(new Date(selectedSession.startDate), "h:mm a")} - {format(new Date(selectedSession.endDate), "h:mm a")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Badge variant="outline" className={getModeColor(selectedSession.deliveryMode)}>
+                      {selectedSession.deliveryMode}
+                    </Badge>
+                  </div>
+                  {selectedSession.deliveryMode === "virtual" && selectedSession.virtualLink && (
+                    <div className="flex items-start gap-3">
+                      <Video className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div className="flex-1">
+                        <Label className="text-sm text-muted-foreground">Virtual Link</Label>
+                        <a
+                          href={selectedSession.virtualLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline break-all"
+                          data-testid="detail-virtual-link"
+                        >
+                          {selectedSession.virtualLink}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {(selectedSession.deliveryMode === "on-site" || selectedSession.deliveryMode === "hybrid") && selectedSession.location && (
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Location</Label>
+                        <p className="font-medium" data-testid="detail-location">{selectedSession.location}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedSession.notes && (
+                <div>
+                  <Label className="text-sm text-muted-foreground">Notes</Label>
+                  <p className="text-sm mt-2 whitespace-pre-wrap" data-testid="detail-notes">{selectedSession.notes}</p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-4 border-t">
+                <Badge variant={getStatusVariant(selectedSession.status)} data-testid="detail-status">
+                  {selectedSession.status}
+                </Badge>
+                <span className="text-sm text-muted-foreground ml-auto">
+                  Created {format(new Date(selectedSession.createdAt), "MMM d, yyyy")}
+                </span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
