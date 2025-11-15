@@ -446,7 +446,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/metrics/conversion', isAuthenticated, async (req, res) => {
     try {
-      const allRequests = await storage.getClientRequests();
+      const { startDate, endDate } = req.query;
+      
+      let allRequests = await storage.getClientRequests();
+      
+      // Filter by date range if provided
+      if (startDate || endDate) {
+        const start = startDate ? new Date(startDate as string) : null;
+        const end = endDate ? new Date(endDate as string) : null;
+        
+        allRequests = allRequests.filter(request => {
+          const requestDate = new Date(request.createdAt);
+          
+          if (start && requestDate < start) return false;
+          if (end) {
+            // Set end date to end of day
+            const endOfDay = new Date(end);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (requestDate > endOfDay) return false;
+          }
+          
+          return true;
+        });
+      }
       
       const requestsWithProposals = new Set<string>();
       const requestsWithSignedContracts = new Set<string>();

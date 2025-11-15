@@ -2,10 +2,13 @@ import { StatCard } from "@/components/stat-card";
 import { SessionCard } from "@/components/session-card";
 import { ActivityFeed } from "@/components/activity-feed";
 import { QuickActions } from "@/components/quick-actions";
-import { Users, FileText, Calendar, DollarSign, TrendingUp, CheckCircle2, PercentIcon } from "lucide-react";
+import { Users, FileText, Calendar, DollarSign, TrendingUp, CheckCircle2, PercentIcon, CalendarRange, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface ConversionMetrics {
   proposalsSent: number;
@@ -14,9 +17,28 @@ interface ConversionMetrics {
 }
 
 export default function Dashboard() {
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  
+  const queryParams = new URLSearchParams();
+  if (startDate) queryParams.append("startDate", startDate);
+  if (endDate) queryParams.append("endDate", endDate);
+  
   const { data: conversionMetrics } = useQuery<ConversionMetrics>({
-    queryKey: ["/api/metrics/conversion"],
+    queryKey: ["/api/metrics/conversion", startDate, endDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/metrics/conversion?${queryParams.toString()}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch metrics");
+      return response.json();
+    },
   });
+  
+  const clearDateFilter = () => {
+    setStartDate("");
+    setEndDate("");
+  };
   //todo: remove mock functionality
   const mockActivities = [
     {
@@ -96,7 +118,43 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <h2 className="text-lg font-semibold mb-4">Conversion Performance</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Conversion Performance</h2>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="start-date" className="text-sm">From:</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-40"
+                data-testid="input-start-date"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="end-date" className="text-sm">To:</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-40"
+                data-testid="input-end-date"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearDateFilter}
+                data-testid="button-clear-date-filter"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
         <div className="grid grid-cols-3 gap-4">
           <StatCard
             title="Proposals Sent"
