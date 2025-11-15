@@ -374,11 +374,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/proposal-documents/:id', isAuthenticated, async (req, res) => {
     try {
-      const partialData = insertProposalDocumentSchema.partial().parse(req.body);
-      const updated = await storage.updateProposalDocument(req.params.id, partialData);
-      if (!updated) {
+      const document = await storage.getProposalDocument(req.params.id);
+      if (!document) {
         return res.status(404).json({ message: "Proposal document not found" });
       }
+
+      if (document.status === "signed") {
+        return res.status(403).json({ message: "Cannot modify a signed document" });
+      }
+
+      const partialData = insertProposalDocumentSchema.partial().parse(req.body);
+
+      if (partialData.status === "signed") {
+        const existingSignedDocs = await storage.getProposalDocumentsByRequest(document.clientRequestId);
+        const hasSignedDoc = existingSignedDocs.some(
+          (doc) => doc.status === "signed" && doc.id !== req.params.id
+        );
+        
+        if (hasSignedDoc) {
+          return res.status(400).json({ 
+            message: "Only one document can be marked as signed per engagement" 
+          });
+        }
+
+        if (!partialData.signatureDate) {
+          partialData.signatureDate = new Date();
+        }
+      }
+
+      const updated = await storage.updateProposalDocument(req.params.id, partialData);
       res.json(updated);
     } catch (error) {
       console.error("Error updating proposal document:", error);
@@ -403,6 +427,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/proposal-documents/:id', isAuthenticated, async (req, res) => {
     try {
+      const document = await storage.getProposalDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ message: "Proposal document not found" });
+      }
+
+      if (document.status === "signed") {
+        return res.status(403).json({ message: "Cannot delete a signed document" });
+      }
+
       await storage.deleteProposalDocument(req.params.id);
       res.status(204).send();
     } catch (error) {

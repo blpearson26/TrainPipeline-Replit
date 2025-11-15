@@ -170,7 +170,7 @@ export function ProposalDocumentsList({ clientRequestId }: ProposalDocumentsList
                 )}
               </Button>
 
-              {document.isCurrentVersion !== 1 && (
+              {document.isCurrentVersion !== 1 && document.status !== "signed" && (
                 <Button
                   size="icon"
                   variant="ghost"
@@ -183,20 +183,22 @@ export function ProposalDocumentsList({ clientRequestId }: ProposalDocumentsList
                 </Button>
               )}
 
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this document?")) {
-                    deleteMutation.mutate(document.id);
-                  }
-                }}
-                disabled={deleteMutation.isPending}
-                title="Delete Document"
-                data-testid={`button-delete-${document.id}`}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {document.status !== "signed" && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this document?")) {
+                      deleteMutation.mutate(document.id);
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                  title="Delete Document"
+                  data-testid={`button-delete-${document.id}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </Card>
