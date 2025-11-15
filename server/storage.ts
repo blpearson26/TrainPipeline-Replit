@@ -1,6 +1,6 @@
 import { users, type User, type UpsertUser, clientRequests, type ClientRequest, type InsertClientRequest, scopingCalls, type ScopingCall, type InsertScopingCall, coordinationCalls, type CoordinationCall, type InsertCoordinationCall, emailCommunications, type EmailCommunication, type InsertEmailCommunication, proposalDocuments, type ProposalDocument, type InsertProposalDocument, trainingSessions, type TrainingSession, type InsertTrainingSession } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or, not, lt, gt, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -43,6 +43,7 @@ export interface IStorage {
   getTrainingSession(id: string): Promise<TrainingSession | undefined>;
   updateTrainingSession(id: string, session: Partial<InsertTrainingSession>): Promise<TrainingSession | undefined>;
   deleteTrainingSession(id: string): Promise<void>;
+  findConflictingSessions(instructor: string, startDate: Date, endDate: Date, excludeSessionId?: string): Promise<TrainingSession[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -334,6 +335,25 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(trainingSessions)
       .where(eq(trainingSessions.id, id));
+  }
+
+  async findConflictingSessions(instructor: string, startDate: Date, endDate: Date, excludeSessionId?: string): Promise<TrainingSession[]> {
+    const conditions = [
+      eq(trainingSessions.instructor, instructor),
+      inArray(trainingSessions.status, ['confirmed', 'tentative']),
+      lt(trainingSessions.startDate, endDate),
+      gt(trainingSessions.endDate, startDate),
+    ];
+
+    if (excludeSessionId) {
+      conditions.push(not(eq(trainingSessions.id, excludeSessionId)));
+    }
+
+    return await db
+      .select()
+      .from(trainingSessions)
+      .where(and(...conditions))
+      .orderBy(trainingSessions.startDate);
   }
 }
 
