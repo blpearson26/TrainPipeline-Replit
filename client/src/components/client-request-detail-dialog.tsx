@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import type { ClientRequest, ScopingCall } from "@shared/schema";
+import type { ClientRequest, ScopingCall, CoordinationCall } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,10 +10,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RecordScopingCallDialog } from "./record-scoping-call-dialog";
+import { RecordCoordinationCallDialog } from "./record-coordination-call-dialog";
 import { ScopingCallDetail } from "./scoping-call-detail";
+import { CoordinationCallDetail } from "./coordination-call-detail";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Mail, Phone, Users, MapPin } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 
 interface ClientRequestDetailDialogProps {
@@ -32,7 +35,13 @@ export function ClientRequestDetailDialog({
     enabled: open,
   });
 
-  const latestCall = scopingCalls?.[0];
+  const { data: coordinationCalls } = useQuery<CoordinationCall[]>({
+    queryKey: ["/api/client-requests", request.id, "coordination-calls"],
+    enabled: open,
+  });
+
+  const latestScopingCall = scopingCalls?.[0];
+  const hasAnyCalls = (scopingCalls && scopingCalls.length > 0) || (coordinationCalls && coordinationCalls.length > 0);
 
   const statusColors = {
     new: "bg-blue-500",
@@ -110,20 +119,53 @@ export function ClientRequestDetailDialog({
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Scoping Call</h3>
-              <RecordScopingCallDialog
-                clientRequestId={request.id}
-                existingCall={latestCall}
-              />
+              <h3 className="text-lg font-semibold">Communication History</h3>
+              <div className="flex gap-2">
+                <RecordScopingCallDialog
+                  clientRequestId={request.id}
+                  existingCall={latestScopingCall}
+                />
+                {latestScopingCall && (
+                  <RecordCoordinationCallDialog
+                    clientRequestId={request.id}
+                  />
+                )}
+              </div>
             </div>
 
-            {latestCall ? (
-              <ScopingCallDetail call={latestCall} clientName={request.clientName} />
+            {hasAnyCalls ? (
+              <div className="space-y-6">
+                {latestScopingCall && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-muted-foreground">Scoping Call</h4>
+                    <ScopingCallDetail call={latestScopingCall} clientName={request.clientName} />
+                  </div>
+                )}
+
+                {coordinationCalls && coordinationCalls.length > 0 && (
+                  <div className="space-y-4">
+                    <Separator />
+                    <h4 className="text-sm font-medium text-muted-foreground">
+                      Coordination Calls ({coordinationCalls.length})
+                    </h4>
+                    <div className="space-y-4">
+                      {coordinationCalls.map((call) => (
+                        <CoordinationCallDetail
+                          key={call.id}
+                          call={call}
+                          clientName={request.clientName}
+                          clientRequestId={request.id}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground" data-testid="text-no-scoping-call">
-                    No scoping call recorded yet. Click "Record Scoping Call" to capture details from your conversation with the client.
+                  <p className="text-muted-foreground" data-testid="text-no-calls">
+                    No calls recorded yet. Click "Record Scoping Call" to capture details from your initial conversation with the client.
                   </p>
                 </CardContent>
               </Card>

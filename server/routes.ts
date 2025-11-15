@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertClientRequestSchema, insertScopingCallSchema } from "@shared/schema";
+import { insertClientRequestSchema, insertScopingCallSchema, insertCoordinationCallSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
@@ -140,6 +140,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting scoping call:", error);
       res.status(500).json({ message: "Failed to delete scoping call" });
+    }
+  });
+
+  app.get('/api/client-requests/:requestId/coordination-calls', isAuthenticated, async (req, res) => {
+    try {
+      const calls = await storage.getCoordinationCallsByRequest(req.params.requestId);
+      res.json(calls);
+    } catch (error) {
+      console.error("Error fetching coordination calls:", error);
+      res.status(500).json({ message: "Failed to fetch coordination calls" });
+    }
+  });
+
+  app.post('/api/coordination-calls', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertCoordinationCallSchema.parse({
+        ...req.body,
+        createdBy: userId,
+        lastModifiedBy: userId,
+      });
+      const newCall = await storage.createCoordinationCall(validatedData);
+      res.status(201).json(newCall);
+    } catch (error) {
+      console.error("Error creating coordination call:", error);
+      res.status(400).json({ message: "Failed to create coordination call", error });
+    }
+  });
+
+  app.get('/api/coordination-calls/:id', isAuthenticated, async (req, res) => {
+    try {
+      const call = await storage.getCoordinationCall(req.params.id);
+      if (!call) {
+        return res.status(404).json({ message: "Coordination call not found" });
+      }
+      res.json(call);
+    } catch (error) {
+      console.error("Error fetching coordination call:", error);
+      res.status(500).json({ message: "Failed to fetch coordination call" });
+    }
+  });
+
+  app.patch('/api/coordination-calls/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const partialData = insertCoordinationCallSchema.partial().parse({
+        ...req.body,
+        lastModifiedBy: userId,
+      });
+      const updated = await storage.updateCoordinationCall(req.params.id, partialData);
+      if (!updated) {
+        return res.status(404).json({ message: "Coordination call not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating coordination call:", error);
+      res.status(400).json({ message: "Failed to update coordination call", error });
+    }
+  });
+
+  app.delete('/api/coordination-calls/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteCoordinationCall(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting coordination call:", error);
+      res.status(500).json({ message: "Failed to delete coordination call" });
     }
   });
 

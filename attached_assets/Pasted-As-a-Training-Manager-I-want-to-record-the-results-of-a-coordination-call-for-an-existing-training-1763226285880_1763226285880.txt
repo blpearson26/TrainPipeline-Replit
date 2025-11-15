@@ -1,0 +1,80 @@
+As a Training Manager,
+I want to record the results of a coordination call for an existing training request,
+so that any additional client instructions, updates, or changes to the training plan are captured and shared with course writers, trainers, and logistics coordinators.
+
+Given / When / Then
+Given:
+
+A training request already exists in the system with a scoping call record.
+
+The client has scheduled or completed a coordination call (e.g., to finalize logistics, confirm participants, or clarify content).
+
+When:
+
+I select “Record Coordination Call” from the training request page or meeting summary tab.
+
+Then:
+
+I am presented with a fillable coordination call form that includes fields to capture:
+
+Call Date / Time
+
+Attendees and Roles (pre-populate from prior scoping call, allow edits/additions)
+
+Purpose of Call (e.g., logistics update, additional content requests, instructor confirmation)
+
+Summary of Discussion Points
+
+New or Updated Training Objectives (if applicable)
+
+Additional Materials or Resources Requested
+
+Changes to Delivery Mode, Dates, or Duration
+
+Follow-Up Actions and Responsible Parties
+
+Notes / Client Instructions
+
+Acceptance Criteria
+✅ Form Behavior
+
+The form loads pre-filled contextual data from the related training request (client name, course title, previous scoping summary).
+
+All fields are editable and accept appropriate input types (text, dropdowns, date).
+
+Required fields: Call Date / Time, Purpose of Call, Summary of Discussion Points.
+
+Optional fields clearly indicated.
+
+✅ Save, Submit & Edit
+
+I can Save as Draft during the call and Submit when complete.
+
+I can Edit or Update coordination notes until the training delivery begins.
+
+The system logs the user, date, and time of the latest update.
+
+✅ Integration & Visibility
+
+The coordination call record is linked to the related training request and visible to:
+
+Course writers (for content updates)
+
+Trainers (for delivery adjustments)
+
+Administrators (for tracking and client communication).
+
+The latest coordination call appears in a Communication History section (e.g., “Scoping Call – 10/15/25”, “Coordination Call – 11/05/25”).
+
+Users can view previous call records in read-only mode.
+
+✅ Validation & Feedback
+
+Missing required fields trigger an error message identifying what must be completed.
+
+Upon successful submission, a confirmation message appears:
+“Coordination call details recorded successfully.”
+
+✅ Audit Trail (Stretch Goal)
+
+Each coordination call entry includes a version history to track what changed since the scoping call.
