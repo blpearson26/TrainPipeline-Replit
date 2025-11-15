@@ -71,6 +71,8 @@ Preferred communication style: Simple, everyday language.
 - `emailCommunications` table: Email correspondence between team and clients
 - `clients` table: Client company information and contact details
 - `proposals` table: Training proposals with status tracking and amounts
+- `proposalDocuments` table: Training proposal and contract documents with version control, status tracking, and signature dates
+- `trainingSessions` table: Training session scheduling with title, client, dates, delivery mode (virtual/on-site/hybrid), location, instructor, facilitators, and status
 
 **Migrations**
 - Drizzle Kit for schema migrations
@@ -86,11 +88,11 @@ Preferred communication style: Simple, everyday language.
 - Path aliases configured for clean imports (`@/`, `@shared/`)
 
 **Key Pages**
-- Dashboard: Overview with metrics, upcoming sessions, and activity feed
-- Client Requests: Client training request management with detailed communication history
+- Dashboard: Overview with conversion metrics, upcoming sessions, and activity feed
+- Client Requests: Client training request management with detailed communication history and proposal documents
 - Clients: Client company information and contact details
 - Proposals: Proposal tracking with status-based views
-- Sessions: Training session calendar and management
+- Sessions: Training session management with list view, filtering (date range, client, instructor, delivery mode), detail dialog, and CSV export
 - Invoices: Invoice generation and payment tracking
 - Settings: User preferences including theme customization
 
@@ -107,10 +109,19 @@ Preferred communication style: Simple, everyday language.
 - Dialog-based forms for recording communications (RecordScopingCallDialog, RecordCoordinationCallDialog, AddEmailCommunicationDialog)
 - Detail view components (ScopingCallDetail, CoordinationCallDetail, EmailCommunicationDetail)
 - ClientRequestDetailDialog with integrated communication history and filtering
+- ProposalDocumentsList with upload, version control, and status management
 - Card-based layouts for displaying entities
 - StatCard for dashboard metrics
 - ActivityFeed for recent system activity
 - StatusBadge for visual status indicators
+
+**Training Session Management**
+- Master schedule list view with comprehensive filtering
+- Session detail dialog with all event information
+- CSV export functionality for schedule data
+- Filtering by date range, client name, instructor, and delivery mode
+- Visual delivery mode badges (virtual, on-site, hybrid)
+- Status tracking (confirmed, tentative, completed)
 
 ## External Dependencies
 
