@@ -11,14 +11,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
-import { insertTrainingSessionSchema, type TrainingSession, type Client } from "@shared/schema";
+import { type TrainingSession, type Client } from "@shared/schema";
 import { z } from "zod";
 
-const formSchema = insertTrainingSessionSchema.extend({
+const formSchema = z.object({
+  clientId: z.string().min(1, "Client is required"),
+  clientName: z.string().min(1, "Client name is required"),
+  proposalId: z.string().optional(),
+  title: z.string().min(1, "Event name is required"),
+  description: z.string().optional(),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
+  deliveryMode: z.enum(["virtual", "on-site", "hybrid"]),
+  location: z.string().optional(),
+  virtualLink: z.string().optional(),
+  instructor: z.string().min(1, "Instructor is required"),
+  facilitators: z.string().optional(),
+  status: z.enum(["tentative", "confirmed", "completed"]),
+  participantCount: z.number().optional(),
+  createdBy: z.string(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -44,33 +57,33 @@ export function AddTrainingSessionDialog({ session, trigger }: AddTrainingSessio
       clientId: session.clientId,
       clientName: session.clientName,
       title: session.title,
-      description: session.description || "",
+      description: session.description ?? undefined,
       startDate: new Date(session.startDate).toISOString().split('T')[0],
       endDate: new Date(session.endDate).toISOString().split('T')[0],
       startTime: new Date(session.startDate).toTimeString().slice(0, 5),
       endTime: new Date(session.endDate).toTimeString().slice(0, 5),
-      deliveryMode: session.deliveryMode,
-      location: session.location || "",
-      virtualLink: session.virtualLink || "",
+      deliveryMode: session.deliveryMode as "virtual" | "on-site" | "hybrid",
+      location: session.location ?? undefined,
+      virtualLink: session.virtualLink ?? undefined,
       instructor: session.instructor,
-      facilitators: session.facilitators?.join(", ") || "",
-      status: session.status,
-      participantCount: session.participantCount || undefined,
+      facilitators: session.facilitators?.join(", ") ?? undefined,
+      status: session.status as "tentative" | "confirmed" | "completed",
+      participantCount: session.participantCount ?? undefined,
       createdBy: session.createdBy,
     } : {
       clientId: "",
       clientName: "",
       title: "",
-      description: "",
+      description: undefined,
       startDate: "",
       endDate: "",
       startTime: "09:00",
       endTime: "17:00",
       deliveryMode: "virtual",
-      location: "",
-      virtualLink: "",
+      location: undefined,
+      virtualLink: undefined,
       instructor: "",
-      facilitators: "",
+      facilitators: undefined,
       status: "tentative",
       participantCount: undefined,
       createdBy: "",
